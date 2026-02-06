@@ -1,6 +1,7 @@
 'use client';
 
 import Image from 'next/image';
+import Link from 'next/link';
 import type { Playlist } from '@/lib/types';
 
 interface AmbientCardProps {
@@ -10,9 +11,10 @@ interface AmbientCardProps {
 
 export default function AmbientCard({ album, onClick }: AmbientCardProps) {
     return (
-        <div
-            onClick={() => onClick?.(album)}
-            className="group relative flex flex-col items-center text-center cursor-pointer"
+        <Link
+            href={`/dreampeace/${album.id}`}
+            onClick={onClick ? (e) => { e.preventDefault(); onClick(album); } : undefined}
+            className="group relative flex flex-col items-center text-center"
         >
             {/* Card Image Container */}
             <div className="relative w-full aspect-square rounded-2xl overflow-hidden mb-4 shadow-soft transition-all duration-500 group-hover:scale-[1.03] group-hover:shadow-glow">
@@ -54,6 +56,6 @@ export default function AmbientCard({ album, onClick }: AmbientCardProps) {
                     {album.description}
                 </p>
             )}
-        </div>
+        </Link>
     );
 }
