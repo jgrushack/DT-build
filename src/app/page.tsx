@@ -1,5 +1,6 @@
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
+import Image from 'next/image';
 import Link from 'next/link';
 import { DT_ARTIST, DT_ALBUMS, getPopularDTTracks } from '@/lib/dt-catalog';
 import FeaturedTracksClient from '@/components/player/FeaturedTracksClient';
@@ -33,8 +34,15 @@ export default async function HomePage() {
 
         <div className="relative z-10 max-w-5xl mx-auto w-full">
           <div className="flex flex-col md:flex-row items-center md:items-end gap-8">
-            <div className="w-44 h-44 md:w-56 md:h-56 rounded-2xl bg-gradient-to-br from-[var(--sage)] to-[var(--earth-dark)] flex items-center justify-center shadow-2xl shadow-black/60 flex-shrink-0 ring-1 ring-white/10">
-              <span className="text-6xl font-bold text-[var(--cream)]">DT</span>
+            <div className="w-44 h-44 md:w-56 md:h-56 rounded-2xl overflow-hidden shadow-2xl shadow-black/60 flex-shrink-0 ring-1 ring-white/10">
+              <Image
+                src="/images/devin-townsend.jpg"
+                alt="Devin Townsend"
+                width={224}
+                height={224}
+                className="w-full h-full object-cover"
+                priority
+              />
             </div>
 
             <div className="flex-1 text-center md:text-left pb-1">

@@ -176,7 +176,7 @@ export const DT_ARTIST: Artist = {
     handle: 'devintownsend',
     name: 'Devin Townsend',
     bio: 'Canadian musician, singer, songwriter, and producer known for his expansive sonic palette spanning progressive metal, ambient, pop, and everything in between.',
-    profileImage: null,
+    profileImage: '/images/devin-townsend.jpg',
     coverImage: null,
     followerCount: 0,
     trackCount: DT_ALBUMS.reduce((sum, a) => sum + a.trackCount, 0),

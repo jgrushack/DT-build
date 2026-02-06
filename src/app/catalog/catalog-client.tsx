@@ -3,17 +3,13 @@
 import { useState, useMemo } from 'react';
 import type { Track, Playlist, ContentAccess } from '@/lib/types';
 import TrackCard from '@/components/catalog/TrackCard';
-import PlaylistCard from '@/components/catalog/PlaylistCard';
 import AlbumCard from '@/components/catalog/AlbumCard';
-import FilterBar from '@/components/catalog/FilterBar';
 import { formatDuration, formatPlayCount } from '@/lib/audius';
-import { useAuth } from '@/contexts/AuthContext';
-import { canUserAccess, getLockMessage } from '@/lib/access';
 import { usePlayerStore } from '@/store/playerStore';
 
 type SortOption = 'date' | 'playCount' | 'title';
 type ViewMode = 'grid' | 'list';
-type ContentTypeFilter = 'all' | 'track' | 'demo' | 'wip' | 'live';
+type TabView = 'albums' | 'tracks';
 
 interface CatalogClientProps {
     tracks: Track[];
@@ -23,52 +19,26 @@ interface CatalogClientProps {
     accessRules: Record<string, ContentAccess>;
 }
 
-export default function CatalogClient({ tracks, albums, playlists, genres, accessRules }: CatalogClientProps) {
-    const { user, isAuthenticated } = useAuth();
+export default function CatalogClient({ tracks, albums, genres, accessRules }: CatalogClientProps) {
     const play = usePlayerStore((state) => state.play);
 
+    const [tab, setTab] = useState<TabView>('albums');
     const [sort, setSort] = useState<SortOption>('date');
-    const [view, setView] = useState<ViewMode>('grid');
-    const [contentType, setContentType] = useState<ContentTypeFilter>('all');
+    const [view, setView] = useState<ViewMode>('list');
     const [genre, setGenre] = useState<string | null>(null);
-    const [showPlaylists, setShowPlaylists] = useState(true);
-
-    // Infer content type from Supabase rules first, then fall back to track metadata
-    const getTrackContentType = (track: Track): string => {
-        const rule = accessRules[track.id];
-        if (rule) return rule.content_type;
-
-        const title = track.title.toLowerCase();
-        const trackGenre = (track.genre || '').toLowerCase();
-
-        if (title.includes('(live)') || title.includes('[live]') || title.includes('live version') || title.includes('live at') || trackGenre === 'live') {
-            return 'live_performance';
-        }
-        if (title.includes('demo') || title.includes('(demo)') || title.includes('[demo]')) {
-            return 'demo';
-        }
-        if (title.includes('wip') || title.includes('work in progress') || title.includes('(rough)') || title.includes('[rough]')) {
-            return 'wip';
-        }
-        return 'track';
-    };
-
-    // Map filter button values to content_type values
-    const filterToContentType: Record<string, string> = {
-        track: 'track',
-        demo: 'demo',
-        wip: 'wip',
-        live: 'live_performance',
-    };
+    const [search, setSearch] = useState('');
 
     // Filter and sort tracks
     const filteredTracks = useMemo(() => {
         let result = [...tracks];
 
-        // Filter by content type
-        if (contentType !== 'all') {
-            const targetType = filterToContentType[contentType];
-            result = result.filter(t => getTrackContentType(t) === targetType);
+        // Search
+        if (search.trim()) {
+            const q = search.toLowerCase();
+            result = result.filter(t =>
+                t.title.toLowerCase().includes(q) ||
+                (t.genre && t.genre.toLowerCase().includes(q))
+            );
         }
 
         // Filter by genre
@@ -94,152 +64,216 @@ export default function CatalogClient({ tracks, albums, playlists, genres, acces
         }
 
         return result;
-    }, [tracks, sort, genre, contentType, accessRules]);
+    }, [tracks, sort, genre, search]);
 
-    // Compute content type counts for filter badges
-    const contentTypeCounts = useMemo(() => {
-        const counts = { all: tracks.length, track: 0, demo: 0, wip: 0, live: 0 } as Record<string, number>;
-        for (const t of tracks) {
-            const ct = getTrackContentType(t);
-            if (ct === 'track') counts.track++;
-            else if (ct === 'demo') counts.demo++;
-            else if (ct === 'wip') counts.wip++;
-            else if (ct === 'live_performance') counts.live++;
-        }
-        return counts;
-    }, [tracks, accessRules]);
+    // Filter albums by genre
+    const filteredAlbums = useMemo(() => {
+        if (!genre) return albums;
+        return albums.filter(a =>
+            a.tracks.some(t => t.genre === genre)
+        );
+    }, [albums, genre]);
 
     const handleTrackClick = (track: Track) => {
-        const rule = accessRules[track.id];
-        const requiredTier = rule ? rule.access_tier : 'public';
-        const hasAccess = canUserAccess(user?.tiers || [], requiredTier, isAuthenticated);
-
-        if (hasAccess) {
-            play(track);
-        }
+        play(track);
     };
 
-    // Helper to get lock state for render
-    const getTrackLockState = (trackId: string) => {
-        const rule = accessRules[trackId];
-        const requiredTier = rule ? rule.access_tier : 'public';
-        const hasAccess = canUserAccess(user?.tiers || [], requiredTier, isAuthenticated);
-        return {
-            isLocked: !hasAccess,
-            lockMessage: !hasAccess ? getLockMessage(requiredTier) : undefined
-        };
-    };
+    const sortOptions: { value: SortOption; label: string }[] = [
+        { value: 'date', label: 'Newest' },
+        { value: 'playCount', label: 'Most Played' },
+        { value: 'title', label: 'Title A-Z' },
+    ];
 
     return (
         <div>
-            {/* Filters */}
-            <FilterBar
-                currentSort={sort}
-                currentView={view}
-                currentContentType={contentType}
-                currentGenre={genre}
-                genres={genres}
-                contentTypeCounts={contentTypeCounts}
-                onSortChange={setSort}
-                onViewChange={setView}
-                onContentTypeChange={setContentType}
-                onGenreChange={setGenre}
-            />
+            {/* Tabs */}
+            <div className="flex items-center gap-1 mb-6">
+                <button
+                    onClick={() => setTab('albums')}
+                    className={`px-5 py-2.5 rounded-full text-sm font-medium transition-all duration-200 ${
+                        tab === 'albums'
+                            ? 'bg-[var(--amber)] text-[var(--stone-deep)] shadow-md'
+                            : 'text-[var(--sage-light)] hover:text-[var(--cream)] hover:bg-white/5'
+                    }`}
+                >
+                    Albums
+                    <span className="ml-1.5 opacity-70">({albums.length})</span>
+                </button>
+                <button
+                    onClick={() => setTab('tracks')}
+                    className={`px-5 py-2.5 rounded-full text-sm font-medium transition-all duration-200 ${
+                        tab === 'tracks'
+                            ? 'bg-[var(--amber)] text-[var(--stone-deep)] shadow-md'
+                            : 'text-[var(--sage-light)] hover:text-[var(--cream)] hover:bg-white/5'
+                    }`}
+                >
+                    All Tracks
+                    <span className="ml-1.5 opacity-70">({tracks.length})</span>
+                </button>
+            </div>
 
-            {/* Albums Section */}
-            {albums.length > 0 && (
-                <div className="mb-8">
-                    <h2 className="text-xl font-semibold text-[var(--cream)] mb-4">
-                        Albums
-                    </h2>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-5">
-                        {albums.map((album) => (
-                            <AlbumCard key={album.id} album={album} />
-                        ))}
-                    </div>
-                </div>
-            )}
-
-            {/* Playlists Section */}
-            {showPlaylists && playlists.length > 0 && (
-                <div className="mb-8">
-                    <div className="flex items-center justify-between mb-4">
-                        <h2 className="text-xl font-semibold text-[var(--cream)]">
-                            Playlists
-                        </h2>
-                        <button
-                            onClick={() => setShowPlaylists(false)}
-                            className="text-sm text-[var(--sage)] hover:text-[var(--sage-light)] transition-colors"
-                        >
-                            Hide
-                        </button>
-                    </div>
-                    <div className="space-y-3">
-                        {playlists.map((playlist) => (
-                            <PlaylistCard
-                                key={playlist.id}
-                                playlist={playlist}
-                                onTrackClick={handleTrackClick}
+            {/* Controls bar */}
+            <div className="glass rounded-xl p-4 mb-6">
+                <div className="flex flex-wrap items-center gap-3">
+                    {/* Search (tracks tab only) */}
+                    {tab === 'tracks' && (
+                        <div className="relative flex-1 min-w-[200px] max-w-sm">
+                            <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--sage)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                            </svg>
+                            <input
+                                type="text"
+                                value={search}
+                                onChange={(e) => setSearch(e.target.value)}
+                                placeholder="Search tracks..."
+                                className="w-full pl-10 pr-4 py-2 bg-[var(--forest-mid)] text-[var(--cream)] text-sm rounded-lg border border-[var(--glass-border)] focus:outline-none focus:ring-2 focus:ring-[var(--amber)]/50 placeholder:text-[var(--sage)]"
                             />
+                            {search && (
+                                <button
+                                    onClick={() => setSearch('')}
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--sage)] hover:text-[var(--cream)]"
+                                >
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                </button>
+                            )}
+                        </div>
+                    )}
+
+                    {/* Genre chips */}
+                    <div className="flex items-center gap-2 flex-wrap flex-1">
+                        <button
+                            onClick={() => setGenre(null)}
+                            className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+                                genre === null
+                                    ? 'bg-[var(--amber)] text-[var(--forest-deep)]'
+                                    : 'bg-[var(--forest-mid)] text-[var(--sage-light)] hover:bg-[var(--forest-light)]'
+                            }`}
+                        >
+                            All
+                        </button>
+                        {genres.map((g) => (
+                            <button
+                                key={g}
+                                onClick={() => setGenre(g)}
+                                className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+                                    genre === g
+                                        ? 'bg-[var(--amber)] text-[var(--forest-deep)]'
+                                        : 'bg-[var(--forest-mid)] text-[var(--sage-light)] hover:bg-[var(--forest-light)]'
+                                }`}
+                            >
+                                {g}
+                            </button>
                         ))}
                     </div>
-                </div>
-            )}
 
-            {/* Tracks Section */}
-            <div>
-                <div className="flex items-center justify-between mb-4">
-                    <h2 className="text-xl font-semibold text-[var(--cream)]">
-                        All Tracks
-                        <span className="text-[var(--sage)] font-normal ml-2">({filteredTracks.length})</span>
-                    </h2>
-                    {!showPlaylists && playlists.length > 0 && (
-                        <button
-                            onClick={() => setShowPlaylists(true)}
-                            className="text-sm text-[var(--amber)] hover:text-[var(--amber-light)] transition-colors"
-                        >
-                            Show Playlists
-                        </button>
+                    {/* Sort + View (tracks tab only) */}
+                    {tab === 'tracks' && (
+                        <div className="flex items-center gap-3">
+                            <div className="relative">
+                                <select
+                                    value={sort}
+                                    onChange={(e) => setSort(e.target.value as SortOption)}
+                                    className="appearance-none bg-[var(--forest-mid)] text-[var(--cream-soft)] text-sm rounded-lg px-4 py-2 pr-8 focus:outline-none focus:ring-2 focus:ring-[var(--amber)]/50 cursor-pointer border border-[var(--glass-border)]"
+                                >
+                                    {sortOptions.map((option) => (
+                                        <option key={option.value} value={option.value}>
+                                            {option.label}
+                                        </option>
+                                    ))}
+                                </select>
+                                <svg className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--sage)] pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                </svg>
+                            </div>
+
+                            <div className="flex items-center bg-[var(--forest-mid)] rounded-lg p-1 border border-[var(--glass-border)]">
+                                <button
+                                    onClick={() => setView('grid')}
+                                    className={`p-2 rounded-md transition-colors ${view === 'grid' ? 'bg-[var(--forest-light)] text-[var(--cream)]' : 'text-[var(--sage)] hover:text-[var(--cream)]'}`}
+                                    title="Grid view"
+                                >
+                                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                                        <path d="M4 4h6v6H4V4zm10 0h6v6h-6V4zM4 14h6v6H4v-6zm10 0h6v6h-6v-6z" />
+                                    </svg>
+                                </button>
+                                <button
+                                    onClick={() => setView('list')}
+                                    className={`p-2 rounded-md transition-colors ${view === 'list' ? 'bg-[var(--forest-light)] text-[var(--cream)]' : 'text-[var(--sage)] hover:text-[var(--cream)]'}`}
+                                    title="List view"
+                                >
+                                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                                        <path d="M4 6h16v2H4V6zm0 5h16v2H4v-2zm0 5h16v2H4v-2z" />
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
                     )}
                 </div>
+            </div>
 
-                {view === 'grid' ? (
-                    // Grid View
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-                        {filteredTracks.map((track) => {
-                            const { isLocked, lockMessage } = getTrackLockState(track.id);
-                            return (
+            {/* ===== ALBUMS TAB ===== */}
+            {tab === 'albums' && (
+                <div>
+                    {filteredAlbums.length > 0 ? (
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-5">
+                            {filteredAlbums.map((album) => (
+                                <AlbumCard key={album.id} album={album} />
+                            ))}
+                        </div>
+                    ) : (
+                        <div className="text-center py-16 text-[var(--sage)]">
+                            <p>No albums found matching this genre.</p>
+                            <button
+                                onClick={() => setGenre(null)}
+                                className="mt-4 text-[var(--amber)] hover:text-[var(--amber-light)] text-sm"
+                            >
+                                Clear filter
+                            </button>
+                        </div>
+                    )}
+                </div>
+            )}
+
+            {/* ===== TRACKS TAB ===== */}
+            {tab === 'tracks' && (
+                <div>
+                    {/* Results count */}
+                    {(search || genre) && (
+                        <p className="text-sm text-[var(--sage)] mb-4">
+                            {filteredTracks.length} track{filteredTracks.length !== 1 ? 's' : ''} found
+                            {search && <span> for &ldquo;{search}&rdquo;</span>}
+                            {genre && <span> in {genre}</span>}
+                        </p>
+                    )}
+
+                    {view === 'grid' ? (
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+                            {filteredTracks.map((track) => (
                                 <TrackCard
                                     key={track.id}
                                     track={track}
                                     onClick={handleTrackClick}
-                                    isLocked={isLocked}
-                                    lockMessage={lockMessage}
                                 />
-                            );
-                        })}
-                    </div>
-                ) : (
-                    // List View
-                    <div className="glass rounded-xl overflow-hidden">
-                        {/* List header */}
-                        <div className="grid grid-cols-12 gap-4 px-4 py-3 border-b border-[var(--glass-border)] text-xs text-[var(--sage)] uppercase tracking-wider">
-                            <div className="col-span-1">#</div>
-                            <div className="col-span-5">Title</div>
-                            <div className="col-span-2">Genre</div>
-                            <div className="col-span-2">Plays</div>
-                            <div className="col-span-2 text-right">Duration</div>
+                            ))}
                         </div>
+                    ) : (
+                        <div className="glass rounded-xl overflow-hidden">
+                            {/* List header */}
+                            <div className="grid grid-cols-12 gap-4 px-4 py-3 border-b border-[var(--glass-border)] text-xs text-[var(--sage)] uppercase tracking-wider">
+                                <div className="col-span-1">#</div>
+                                <div className="col-span-5">Title</div>
+                                <div className="col-span-2">Genre</div>
+                                <div className="col-span-2">Plays</div>
+                                <div className="col-span-2 text-right">Duration</div>
+                            </div>
 
-                        {/* List items */}
-                        {filteredTracks.map((track, index) => {
-                            const { isLocked, lockMessage } = getTrackLockState(track.id);
-                            return (
+                            {filteredTracks.map((track, index) => (
                                 <div
                                     key={track.id}
                                     onClick={() => handleTrackClick(track)}
-                                    className={`grid grid-cols-12 gap-4 px-4 py-3 hover:bg-[var(--glass-bg-light)] cursor-pointer transition-colors group border-b border-[var(--glass-border)]/50 last:border-0 ${isLocked ? 'opacity-70' : ''}`}
-                                    title={isLocked ? lockMessage : undefined}
+                                    className="grid grid-cols-12 gap-4 px-4 py-3 hover:bg-[var(--glass-bg-light)] cursor-pointer transition-colors group border-b border-[var(--glass-border)]/50 last:border-0"
                                 >
                                     <div className="col-span-1 text-[var(--sage)] group-hover:text-[var(--amber)] flex items-center">
                                         <span className="group-hover:hidden">{index + 1}</span>
@@ -261,7 +295,6 @@ export default function CatalogClient({ tracks, albums, playlists, genres, acces
                                                 </svg>
                                             </div>
                                         )}
-
                                         <span className="truncate text-[var(--cream-soft)] group-hover:text-[var(--amber)] transition-colors">
                                             {track.title}
                                         </span>
@@ -276,27 +309,27 @@ export default function CatalogClient({ tracks, albums, playlists, genres, acces
                                         {formatDuration(track.duration)}
                                     </div>
                                 </div>
-                            );
-                        })}
-                    </div>
-                )}
+                            ))}
+                        </div>
+                    )}
 
-                {/* Empty state */}
-                {filteredTracks.length === 0 && (
-                    <div className="text-center py-16 text-[var(--sage)]">
-                        <svg className="w-16 h-16 mx-auto mb-4 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
-                        </svg>
-                        <p>No tracks found matching your filters.</p>
-                        <button
-                            onClick={() => setGenre(null)}
-                            className="mt-4 text-[var(--amber)] hover:text-[var(--amber-light)] text-sm"
-                        >
-                            Clear filters
-                        </button>
-                    </div>
-                )}
-            </div>
+                    {/* Empty state */}
+                    {filteredTracks.length === 0 && (
+                        <div className="text-center py-16 text-[var(--sage)]">
+                            <svg className="w-16 h-16 mx-auto mb-4 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
+                            </svg>
+                            <p>No tracks found.</p>
+                            <button
+                                onClick={() => { setGenre(null); setSearch(''); }}
+                                className="mt-4 text-[var(--amber)] hover:text-[var(--amber-light)] text-sm"
+                            >
+                                Clear filters
+                            </button>
+                        </div>
+                    )}
+                </div>
+            )}
         </div>
     );
 }
