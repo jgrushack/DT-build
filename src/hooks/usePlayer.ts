@@ -8,8 +8,9 @@ import { usePlayerStore } from '@/store/playerStore';
 const STREAM_BASE = 'https://discoveryprovider.audius.co/v1/tracks';
 const APP_NAME = 'artist-portal-mvp';
 
-function getStreamUrl(trackId: string): string {
-    return `${STREAM_BASE}/${trackId}/stream?app_name=${APP_NAME}`;
+function getStreamUrl(track: { id: string; streamId?: string }): string {
+    const audiusId = track.streamId || track.id;
+    return `${STREAM_BASE}/${audiusId}/stream?app_name=${APP_NAME}`;
 }
 
 export function usePlayer() {
@@ -112,7 +113,7 @@ export function usePlayer() {
 
         if (currentTrack && currentTrack.id !== currentTrackIdRef.current) {
             currentTrackIdRef.current = currentTrack.id;
-            audio.src = getStreamUrl(currentTrack.id);
+            audio.src = getStreamUrl(currentTrack);
             audio.load();
         } else if (!currentTrack) {
             currentTrackIdRef.current = null;

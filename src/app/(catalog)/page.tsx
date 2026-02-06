@@ -1,10 +1,7 @@
-import { getArtistById, getArtistTracks, getArtistAlbums, getArtistPlaylists } from '@/lib/audius';
-import { getAllContentAccess } from '@/lib/access';
+import { DT_ARTIST, DT_ALBUMS, getAllDTTracks, getDTGenres } from '@/lib/dt-catalog';
 import CatalogClient from './catalog-client';
 import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
-
-const ARTIST_ID = 'nkwv1';
 
 export const revalidate = 300;
 
@@ -14,23 +11,11 @@ export const metadata = {
 };
 
 export default async function CatalogPage() {
-    const [artist, tracksResponse, albums, playlists, accessRules] = await Promise.all([
-        getArtistById(ARTIST_ID),
-        getArtistTracks(ARTIST_ID, 100),
-        getArtistAlbums(ARTIST_ID),
-        getArtistPlaylists(ARTIST_ID),
-        getAllContentAccess(),
-    ]);
-
-    if (!artist) {
-        return (
-            <div className="min-h-screen bg-[var(--background)] text-[var(--cream)] flex items-center justify-center">
-                <p>Unable to load catalog. Please try again later.</p>
-            </div>
-        );
-    }
-
-    const genres = [...new Set(tracksResponse.data.map(t => t.genre).filter((g): g is string => g !== null))];
+    const artist = DT_ARTIST;
+    const tracks = getAllDTTracks();
+    const albums = DT_ALBUMS;
+    const genres = getDTGenres();
+    const accessRules = {};
 
     return (
         <div className="min-h-screen bg-stone-ambient text-[var(--cream)] flex flex-col">
@@ -43,14 +28,14 @@ export default async function CatalogPage() {
                             {artist.name}&apos;s Catalog
                         </h1>
                         <p className="text-[var(--sage)] mt-2">
-                            {tracksResponse.data.length} tracks · {albums.length} albums · {playlists.length} playlists
+                            {tracks.length} tracks · {albums.length} albums
                         </p>
                     </div>
 
                     <CatalogClient
-                        tracks={tracksResponse.data}
+                        tracks={tracks}
                         albums={albums}
-                        playlists={playlists}
+                        playlists={[]}
                         genres={genres}
                         accessRules={accessRules}
                     />

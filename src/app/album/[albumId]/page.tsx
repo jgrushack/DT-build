@@ -4,11 +4,16 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { getPlaylistTracks } from '@/lib/audius';
 import { formatDuration } from '@/lib/audius';
+import { getDTAlbum, DT_ALBUMS } from '@/lib/dt-catalog';
 import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
 import AlbumTracks from './album-client';
 
 export const revalidate = 300;
+
+export async function generateStaticParams() {
+    return DT_ALBUMS.map((album) => ({ albumId: album.id }));
+}
 
 interface AlbumPageProps {
     params: Promise<{ albumId: string }>;
@@ -20,7 +25,12 @@ export default async function AlbumPage({ params }: AlbumPageProps) {
     if (!token) redirect('/login');
 
     const { albumId } = await params;
-    const album = await getPlaylistTracks(albumId);
+
+    // Try DT catalog first, then fall back to Audius
+    let album = getDTAlbum(albumId) || null;
+    if (!album) {
+        album = await getPlaylistTracks(albumId);
+    }
 
     if (!album) notFound();
 

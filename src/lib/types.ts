@@ -55,6 +55,7 @@ export interface Artist {
  */
 export interface Track {
     id: string;
+    streamId?: string; // Audius track ID for audio playback (defaults to id if not set)
     title: string;
     duration: number; // in seconds
     artwork: string | null;
