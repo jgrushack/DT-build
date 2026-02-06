@@ -1,26 +1,565 @@
 @import "tailwindcss";
 
+/* ============================================================================
+   FOREST GLASSMORPHISM DESIGN SYSTEM
+   Natural aesthetic with liquid glass effects for Devin Townsend
+   ============================================================================ */
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Primary Colors - Warm Stone Base */
+  --stone-deep: #25221e;
+  --stone-mid: #2a2824;
+  --stone-light: #32302b;
+
+  /* Earth Tones */
+  --earth-dark: #3d2b1f;
+  --earth-mid: #5a4535;
+  --earth-light: #7a6555;
+
+  /* Neutral Creams */
+  --cream: #f5f0e8;
+  --cream-soft: #ede7db;
+  --cream-warm: #e5ddd0;
+
+  /* Sage & Moss - Now Accent Colors */
+  --sage: #8a9a7b;
+  --sage-light: #a4b396;
+  --moss: #6b7a5e;
+
+  /* Accent - Warm Amber */
+  --amber: #c9a45c;
+  --amber-light: #d9bc7e;
+  --amber-dark: #a88a45;
+
+  /* Semantic Colors */
+  --background: var(--stone-deep);
+  --background-elevated: var(--stone-mid);
+  --foreground: var(--cream);
+  --foreground-muted: var(--cream-warm);
+  --accent: var(--amber);
+  --accent-hover: var(--amber-light);
+
+  /* Glass Effects - Updated for stone base */
+  --glass-bg: rgba(30, 28, 25, 0.75);
+  --glass-bg-light: rgba(42, 40, 36, 0.5);
+  --glass-border: rgba(138, 154, 123, 0.25);
+  --glass-border-hover: rgba(138, 154, 123, 0.4);
+  --glass-blur: 16px;
+  --glass-blur-heavy: 24px;
+
+  /* Shadows */
+  --shadow-soft: 0 4px 24px rgba(0, 0, 0, 0.2);
+  --shadow-glow: 0 0 40px rgba(201, 164, 92, 0.15);
+  --shadow-ambient: 0 8px 32px rgba(37, 34, 30, 0.5);
+
+  /* Transitions */
+  --transition-fast: 150ms ease;
+  --transition-base: 250ms ease;
+  --transition-slow: 400ms ease-out;
+
+  /* Border Radius */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+  --radius-full: 9999px;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+/* Dreampeace Theme Override */
+/* Dreampeace Theme Override - Ethereal Light Mode */
+.theme-dreampeace {
+  /* Soft White/Cream Base */
+  --background: #faf9f6;
+  --background-elevated: #ffffff;
+
+  /* Deep Slate/Blue Text for Contrast */
+  --foreground: #2d3748;
+  --foreground-muted: #718096;
+
+  /* Ethereal Accents */
+  --accent: #805ad5;
+  /* Soft Purple */
+  --accent-hover: #9f7aea;
+
+  /* Light Glass */
+  --glass-bg: rgba(255, 255, 255, 0.65);
+  --glass-bg-light: rgba(255, 255, 255, 0.4);
+  --glass-border: rgba(255, 255, 255, 0.8);
+  --glass-border-hover: rgba(128, 90, 213, 0.3);
+
+  /* Colored Shadows */
+  --shadow-soft: 0 4px 20px rgba(128, 90, 213, 0.1);
+  --shadow-glow: 0 0 40px rgba(128, 90, 213, 0.2);
+  --shadow-ambient: 0 8px 32px rgba(159, 122, 234, 0.15);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* Dreampeace Background Gradient */
+.bg-dreampeace {
+  background:
+    radial-gradient(circle at 10% 10%, rgba(235, 248, 255, 0.8) 0%, transparent 40%),
+    radial-gradient(circle at 90% 90%, rgba(250, 245, 255, 0.8) 0%, transparent 40%),
+    radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.8) 0%, transparent 60%),
+    linear-gradient(135deg, #e6fffa 0%, #ebf8ff 50%, #faf5ff 100%);
+  background-attachment: fixed;
 }
+
+/* Tailwind theme configuration - using CSS custom properties directly */
+
+/* ============================================================================
+   BASE STYLES
+   ============================================================================ */
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans), system-ui, -apple-system, sans-serif;
+  min-height: 100vh;
+}
+
+/* Natural gradient background with forest texture */
+.bg-natural {
+  background-color: var(--stone-deep);
+  background-image:
+    linear-gradient(rgba(37, 34, 30, 0.85), rgba(26, 24, 21, 0.95)),
+    url('/bg-texture.png');
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
+}
+
+/* Stone ambient background with sage/amber accents */
+.bg-stone-ambient {
+  background-color: var(--stone-deep);
+  background-image:
+    radial-gradient(ellipse at 30% 0%, rgba(138, 154, 123, 0.15) 0%, transparent 50%),
+    radial-gradient(ellipse at 70% 100%, rgba(201, 164, 92, 0.1) 0%, transparent 60%),
+    linear-gradient(rgba(37, 34, 30, 0.9), rgba(26, 24, 21, 0.95)),
+    url('/bg-texture.png');
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
+}
+
+/* ============================================================================
+   GLASS COMPONENTS
+   ============================================================================ */
+
+/* Primary glass panel */
+.glass {
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+}
+
+/* Light glass variant */
+.glass-light {
+  background: var(--glass-bg-light);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-md);
+}
+
+/* Heavy blur glass */
+.glass-heavy {
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur-heavy));
+  -webkit-backdrop-filter: blur(var(--glass-blur-heavy));
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+}
+
+/* Interactive glass (cards, buttons) */
+.glass-interactive {
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+  transition: all var(--transition-base);
+}
+
+.glass-interactive:hover {
+  background: rgba(42, 40, 36, 0.75);
+  border-color: var(--glass-border-hover);
+  box-shadow: var(--shadow-soft);
+  transform: translateY(-2px);
+}
+
+/* ============================================================================
+   LIQUID GLASS EFFECT
+   Premium glass with refraction-like gradient
+   ============================================================================ */
+
+.liquid-glass {
+  background:
+    linear-gradient(135deg,
+      rgba(138, 154, 123, 0.1) 0%,
+      rgba(42, 40, 36, 0.6) 50%,
+      rgba(61, 43, 31, 0.2) 100%);
+  backdrop-filter: blur(var(--glass-blur-heavy));
+  -webkit-backdrop-filter: blur(var(--glass-blur-heavy));
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-xl);
+  box-shadow:
+    inset 0 1px 1px rgba(255, 255, 255, 0.05),
+    var(--shadow-ambient);
+}
+
+/* Liquid glass with amber glow */
+.liquid-glass-amber {
+  background:
+    linear-gradient(135deg,
+      rgba(201, 164, 92, 0.08) 0%,
+      rgba(42, 40, 36, 0.6) 50%,
+      rgba(138, 154, 123, 0.1) 100%);
+  backdrop-filter: blur(var(--glass-blur-heavy));
+  -webkit-backdrop-filter: blur(var(--glass-blur-heavy));
+  border: 1px solid rgba(201, 164, 92, 0.2);
+  border-radius: var(--radius-xl);
+  box-shadow:
+    inset 0 1px 1px rgba(255, 255, 255, 0.05),
+    var(--shadow-glow);
+}
+
+/* ============================================================================
+   BUTTONS
+   ============================================================================ */
+
+/* Primary button - Amber accent */
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  background: linear-gradient(135deg, var(--amber) 0%, var(--amber-dark) 100%);
+  color: var(--stone-deep);
+  font-weight: 600;
+  border-radius: var(--radius-full);
+  border: none;
+  cursor: pointer;
+  transition: all var(--transition-base);
+  box-shadow: 0 4px 16px rgba(201, 164, 92, 0.3);
+}
+
+.btn-primary:hover {
+  background: linear-gradient(135deg, var(--amber-light) 0%, var(--amber) 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 24px rgba(201, 164, 92, 0.4);
+}
+
+/* Secondary button - Glass */
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  color: var(--cream);
+  font-weight: 500;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--glass-border);
+  cursor: pointer;
+  transition: all var(--transition-base);
+}
+
+.btn-secondary:hover {
+  background: rgba(42, 40, 36, 0.8);
+  border-color: var(--sage);
+  transform: translateY(-1px);
+}
+
+/* Ghost button */
+.btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  background: transparent;
+  color: var(--sage-light);
+  font-weight: 500;
+  border-radius: var(--radius-full);
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all var(--transition-base);
+}
+
+.btn-ghost:hover {
+  background: var(--glass-bg-light);
+  border-color: var(--glass-border);
+  color: var(--cream);
+}
+
+/* ============================================================================
+   TYPOGRAPHY
+   ============================================================================ */
+
+.text-gradient {
+  background: linear-gradient(135deg, var(--cream) 0%, var(--sage-light) 50%, var(--cream) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.text-gradient-amber {
+  background: linear-gradient(135deg, var(--amber-light) 0%, var(--amber) 50%, var(--amber-dark) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ============================================================================
+   ANIMATIONS
+   ============================================================================ */
+
+@keyframes slide-up {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes float {
+
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+@keyframes pulse-soft {
+
+  0%,
+  100% {
+    opacity: 0.4;
+  }
+
+  50% {
+    opacity: 0.7;
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.animate-slide-up {
+  animation: slide-up 0.3s ease-out;
+}
+
+.animate-fade-in {
+  animation: fade-in 0.4s ease-out;
+}
+
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+}
+
+.animate-pulse-soft {
+  animation: pulse-soft 4s ease-in-out infinite;
+}
+
+/* Staggered animation delays */
+.animation-delay-100 {
+  animation-delay: 100ms;
+}
+
+.animation-delay-200 {
+  animation-delay: 200ms;
+}
+
+.animation-delay-300 {
+  animation-delay: 300ms;
+}
+
+.animation-delay-500 {
+  animation-delay: 500ms;
+}
+
+.animation-delay-1000 {
+  animation-delay: 1000ms;
+}
+
+/* ============================================================================
+   SCROLLBAR
+   ============================================================================ */
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--stone-deep);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--stone-light);
+  border-radius: var(--radius-full);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--sage);
+}
+
+/* ============================================================================
+   UTILITY CLASSES
+   ============================================================================ */
+
+/* Dreampeace Typography */
+.font-ethereal {
+  text-transform: uppercase;
+  letter-spacing: 0.25em;
+  font-weight: 300;
+}
+
+/* ============================================================================
+   PORTAL TRANSITIONS (Dreamy/Ethereal)
+   ============================================================================ */
+
+/* 1. The White Void (Entry) */
+@keyframes portal-fade-in {
+  0% {
+    opacity: 0;
+  }
+
+  100% {
+    opacity: 1;
+  }
+}
+
+/* 2. The Expansion (Tunnel Effect) */
+@keyframes portal-expand {
+  0% {
+    transform: scale(0.5);
+    opacity: 0;
+    filter: blur(10px);
+  }
+
+  40% {
+    opacity: 0.8;
+    filter: blur(0px);
+  }
+
+  100% {
+    transform: scale(400);
+    opacity: 1;
+    filter: blur(2px);
+  }
+}
+
+/* 3. The Arrival (Exit Void) */
+@keyframes portal-fade-out {
+  0% {
+    opacity: 1;
+    background-color: var(--background-elevated);
+  }
+
+  100% {
+    opacity: 0;
+    background-color: var(--background-elevated);
+  }
+}
+
+/* 4. Text Fade In (During Transition) */
+@keyframes text-emerge {
+  0% {
+    opacity: 0;
+    transform: translateY(20px);
+    letter-spacing: 0.5em;
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+    letter-spacing: 0.25em;
+  }
+}
+
+.animate-portal-fade-in {
+  animation: portal-fade-in 3.5s cubic-bezier(0.2, 0, 0.2, 1) forwards;
+}
+
+.animate-portal-expand {
+  animation: portal-expand 4s cubic-bezier(0.25, 0.1, 0.25, 1) forwards;
+}
+
+.animate-portal-text {
+  animation: text-emerge 2s ease-out forwards;
+  animation-delay: 1.5s;
+  /* Wait for whiteout */
+}
+
+/* Applied to the destination page to fade IN from white */
+.animate-arrival {
+  animation: portal-fade-out 2.5s ease-in-out forwards;
+  pointer-events: none;
+}
+
+/* Natural shadows */
+.shadow-natural {
+  box-shadow: var(--shadow-soft);
+}
+
+.shadow-glow {
+  box-shadow: var(--shadow-glow);
+}
+
+.shadow-ambient {
+  box-shadow: var(--shadow-ambient);
+}
+
+/* Hover lift effect */
+.hover-lift {
+  transition: transform var(--transition-base), box-shadow var(--transition-base);
+}
+
+.hover-lift:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-soft);
+}
+
+/* Focus ring for accessibility */
+.focus-ring:focus-visible {
+  outline: 2px solid var(--amber);
+  outline-offset: 2px;
+}
+
+/* Dreampeace Typography */
+.font-ethereal {
+  text-transform: uppercase;
+  letter-spacing: 0.25em;
+  font-weight: 300;
 }
