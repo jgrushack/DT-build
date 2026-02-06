@@ -191,9 +191,14 @@ export function getAllDTTracks(): Track[] {
     return DT_ALBUMS.flatMap(a => a.tracks);
 }
 
-/** Top tracks sorted by play count */
+/** Top tracks — one per album for visual variety, sorted by play count */
 export function getPopularDTTracks(limit = 8): Track[] {
-    return getAllDTTracks()
+    const picks: Track[] = [];
+    for (const album of DT_ALBUMS) {
+        const best = album.tracks.reduce((a, b) => (b.playCount > a.playCount ? b : a));
+        picks.push(best);
+    }
+    return picks
         .sort((a, b) => b.playCount - a.playCount)
         .slice(0, limit);
 }

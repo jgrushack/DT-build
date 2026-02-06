@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
 import { DT_ARTIST, DT_ALBUMS, getPopularDTTracks } from '@/lib/dt-catalog';
-import FeaturedTracksClient from '@/components/player/FeaturedTracksClient';
+import PopularTracks from '@/components/player/PopularTracks';
 import PortalTransition from '@/components/dreampeace/PortalTransition';
 import AlbumCard from '@/components/catalog/AlbumCard';
 import Navbar from '@/components/layout/Navbar';
@@ -19,7 +19,6 @@ export default async function HomePage() {
   const artist = DT_ARTIST;
   const popularTracks = getPopularDTTracks(8);
   const albums = DT_ALBUMS;
-  const accessRules = {};
 
   return (
     <div className="min-h-screen bg-natural text-[var(--cream)] flex flex-col">
@@ -50,7 +49,7 @@ export default async function HomePage() {
                 {artist.name}
               </h1>
               {artist.bio && (
-                <p className="text-[var(--sage-light)] text-sm md:text-base max-w-lg leading-relaxed mb-5 line-clamp-2">
+                <p className="text-[var(--sage-light)] text-sm md:text-base max-w-lg leading-relaxed mb-5">
                   {artist.bio}
                 </p>
               )}
@@ -90,7 +89,7 @@ export default async function HomePage() {
               </svg>
             </Link>
           </div>
-          <FeaturedTracksClient tracks={popularTracks} accessRules={accessRules} />
+          <PopularTracks tracks={popularTracks} />
         </div>
       </section>
 
