@@ -109,8 +109,8 @@ function LoginContent() {
             href="/api/auth/audius"
             className="group flex items-center justify-center gap-3 w-full px-6 py-3.5 rounded-full bg-[#7E1BCC] text-white font-semibold text-sm transition-all duration-300 hover:shadow-[0_0_30px_rgba(126,27,204,0.3)] hover:-translate-y-0.5"
           >
-            <svg className="w-5 h-5 transition-transform group-hover:scale-110" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.5 17.5h-3V8.25L9 17.5H6.5l5.5-11h3v9.25L20.5 6.5H23l-5.5 11z" />
+            <svg className="w-5 h-5 transition-transform group-hover:scale-110" viewBox="0 0 56 48" fill="currentColor">
+              <path d="M55.82 46.04L42.46 23.35 36.19 12.7 29.09.66c-.51-.87-1.8-.88-2.32 0L13.38 23.33l-5.47 9.26c-.52.87.12 1.96 1.15 1.97h10.34c.48 0 .92-.25 1.16-.65l5.37-9.1.82-1.39c.03-.05.07-.11.1-.15.57-.72 1.73-.66 2.21.16l5.58 9.47 1.03 1.75c.06.1.1.2.13.31.23.8-.38 1.66-1.29 1.66H22.36c-.48 0-.92.25-1.16.65l-5.18 8.76c-.51.87.13 1.96 1.16 1.97h10.72l13.37.01 13.39.01c1.03 0 1.67-1.09 1.16-1.96" />
             </svg>
             Sign in with Audius
           </a>
