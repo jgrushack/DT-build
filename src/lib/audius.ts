@@ -218,7 +218,12 @@ export async function getStreamUrl(trackId: string): Promise<StreamUrlResult> {
         // Use a known Audius discovery node to construct the stream URL
         // This avoids the SDK's streamTrack method which returns binary data
         const discoveryNode = 'https://discoveryprovider.audius.co';
-        const streamUrl = `${discoveryNode}/v1/tracks/${trackId}/stream?app_name=${process.env.NEXT_PUBLIC_AUDIUS_APP_NAME || 'artist-portal-mvp'}`;
+
+        // DREAMPEACE PLACEHOLDER REDIRECTION
+        // If trackId starts with 'dp', it's a placeholder asking for the ambient stream
+        const effectiveTrackId = trackId.startsWith('dp') ? '5K29J' : trackId;
+
+        const streamUrl = `${discoveryNode}/v1/tracks/${effectiveTrackId}/stream?app_name=${process.env.NEXT_PUBLIC_AUDIUS_APP_NAME || 'artist-portal-mvp'}`;
 
         return { url: streamUrl };
     } catch (error) {
