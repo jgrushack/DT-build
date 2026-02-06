@@ -67,27 +67,9 @@ export function canUserAccess(
     requiredTier: string,
     isAuthenticated: boolean
 ): boolean {
-    // 1. Public content requires login (per user request)
-    if (requiredTier === AccessTier.PUBLIC) {
-        return isAuthenticated;
-    }
-
-    // 2. Authenticated tier requires login (any tier)
-    if (requiredTier === AccessTier.AUTHENTICATED) {
-        return isAuthenticated;
-    }
-
-    // 3. Patron tier requires active subscription
-    if (requiredTier === AccessTier.PATRON) {
-        if (!userTiers || !isAuthenticated) return false;
-        // Check if user has any patron tiers
-        // This depends on how we name tiers in the auth provider
-        // For now, we assume if they have 'patreon-tier' or 'isSubscribed' logic passed down
-        return userTiers.some(t => t.includes('patron') || t.includes('supporter') || t.includes('premium'));
-    }
-
-    // Default deny
-    return false;
+    // The entire site is gated behind authentication (middleware redirects to /login).
+    // So any authenticated user has full access to all content.
+    return isAuthenticated;
 }
 
 /**
