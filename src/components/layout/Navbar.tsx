@@ -45,10 +45,7 @@ export default function Navbar() {
                             </span>
                         </Link>
                     ) : (
-                        <Link href="/" className="flex items-center gap-3 group">
-                            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--sage)] to-[var(--forest-mid)] flex items-center justify-center shadow-lg group-hover:shadow-[var(--shadow-glow)] transition-all duration-300">
-                                <span className="text-[var(--foreground)] font-bold text-lg">DT</span>
-                            </div>
+                        <Link href="/" className="group">
                             <span className="text-[var(--foreground)] font-semibold text-lg tracking-wide group-hover:text-[var(--amber)] transition-colors">
                                 Devin Townsend
                             </span>
