@@ -19,11 +19,14 @@ interface PlayerActions {
     setDuration: (d: number) => void;
     setIsLoading: (b: boolean) => void;
     setError: (e: string | null) => void;
+    setVisualizerActive: (b: boolean) => void;
 }
 
 export type PlayerStore = PlayerState & PlayerActions & {
     /** Internal: incremented each time seek() is called so the hook can detect it */
     _seekVersion: number;
+    /** Whether the Dreampeace visualizer is active (hides bottom player bar) */
+    visualizerActive: boolean;
 };
 
 export const usePlayerStore = create<PlayerStore>((set, get) => ({
@@ -37,6 +40,7 @@ export const usePlayerStore = create<PlayerStore>((set, get) => ({
     isLoading: false,
     error: null,
     _seekVersion: 0,
+    visualizerActive: false,
 
     // Actions
     play: (track) => {
@@ -96,4 +100,6 @@ export const usePlayerStore = create<PlayerStore>((set, get) => ({
     setIsLoading: (b) => set({ isLoading: b }),
 
     setError: (e) => set({ error: e }),
+
+    setVisualizerActive: (b) => set({ visualizerActive: b }),
 }));

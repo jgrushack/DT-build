@@ -3,13 +3,19 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { useState, useRef, useEffect } from 'react';
+import { usePathname } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
+import PortalTransition from '@/components/dreampeace/PortalTransition';
+import ReturnTransition from '@/components/dreampeace/ReturnTransition';
 
 export default function Navbar() {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
     const dropdownRef = useRef<HTMLDivElement>(null);
     const { user, isAuthenticated, isLoading, logout } = useAuth();
+    const pathname = usePathname();
+
+    const isDreampeace = pathname.startsWith('/dreampeace');
 
     useEffect(() => {
         function handleClickOutside(event: MouseEvent) {
@@ -31,31 +37,45 @@ export default function Navbar() {
         <nav className="fixed top-0 left-0 right-0 z-50 glass-heavy border-b border-[var(--glass-border)]">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="flex items-center justify-between h-16">
-                    {/* Logo */}
-                    <Link href="/" className="flex items-center gap-3 group">
-                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--sage)] to-[var(--forest-mid)] flex items-center justify-center shadow-lg group-hover:shadow-[var(--shadow-glow)] transition-all duration-300">
-                            <span className="text-[var(--foreground)] font-bold text-lg">DT</span>
-                        </div>
-                        <span className="text-[var(--foreground)] font-semibold text-lg tracking-wide group-hover:text-[var(--amber)] transition-colors">
-                            Devin Townsend
-                        </span>
-                    </Link>
+                    {/* Logo — context-aware */}
+                    {isDreampeace ? (
+                        <Link href="/dreampeace" className="group">
+                            <span className="text-[var(--foreground)] font-light text-lg tracking-[0.1em] group-hover:text-[var(--accent)] transition-colors">
+                                Dreampeace
+                            </span>
+                        </Link>
+                    ) : (
+                        <Link href="/" className="flex items-center gap-3 group">
+                            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--sage)] to-[var(--forest-mid)] flex items-center justify-center shadow-lg group-hover:shadow-[var(--shadow-glow)] transition-all duration-300">
+                                <span className="text-[var(--foreground)] font-bold text-lg">DT</span>
+                            </div>
+                            <span className="text-[var(--foreground)] font-semibold text-lg tracking-wide group-hover:text-[var(--amber)] transition-colors">
+                                Devin Townsend
+                            </span>
+                        </Link>
+                    )}
 
                     {/* Desktop Navigation */}
                     <div className="hidden md:flex items-center gap-8">
-                        <Link
-                            href="/catalog"
-                            className="text-[var(--foreground-muted)] hover:text-[var(--foreground)] transition-colors text-sm font-medium"
-                        >
-                            Explore
-                        </Link>
-                        <Link
-                            href="/dreampeace"
-                            className="text-[var(--foreground-muted)] hover:text-[var(--amber)] transition-colors text-sm font-medium flex items-center gap-1.5"
-                        >
-                            <span className="w-1.5 h-1.5 rounded-full bg-[var(--sage)]"></span>
-                            Dreampeace
-                        </Link>
+                        {isDreampeace ? (
+                            /* On Dreampeace: show "Devin Townsend" link back to main with return transition */
+                            <ReturnTransition>
+                                <span className="text-[var(--foreground-muted)] hover:text-[var(--foreground)] transition-colors text-sm font-medium flex items-center gap-1.5 cursor-pointer">
+                                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                                    </svg>
+                                    Devin Townsend
+                                </span>
+                            </ReturnTransition>
+                        ) : (
+                            /* On main site: show Dreampeace link with portal transition */
+                            <PortalTransition>
+                                <span className="text-[var(--foreground-muted)] hover:text-[var(--amber)] transition-colors text-sm font-medium flex items-center gap-1.5 cursor-pointer">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-[var(--sage)]"></span>
+                                    Dreampeace
+                                </span>
+                            </PortalTransition>
+                        )}
 
                         {isLoading ? (
                             <div className="w-20 h-9 rounded-full bg-[var(--forest-mid)] animate-pulse" />
@@ -127,20 +147,25 @@ export default function Navbar() {
             {isMenuOpen && (
                 <div className="md:hidden glass border-t border-[var(--glass-border)] animate-fade-in">
                     <div className="px-4 py-4 space-y-3">
-                        <Link
-                            href="/catalog"
-                            className="block text-[var(--foreground-muted)] hover:text-[var(--foreground)] transition-colors text-sm font-medium py-2"
-                            onClick={() => setIsMenuOpen(false)}
-                        >
-                            Explore
-                        </Link>
-                        <Link
-                            href="/dreampeace"
-                            className="block text-[var(--foreground-muted)] hover:text-[var(--amber)] transition-colors text-sm font-medium py-2"
-                            onClick={() => setIsMenuOpen(false)}
-                        >
-                            Dreampeace
-                        </Link>
+                        {isDreampeace ? (
+                            <ReturnTransition>
+                                <span
+                                    className="block text-[var(--foreground-muted)] hover:text-[var(--foreground)] transition-colors text-sm font-medium py-2 cursor-pointer"
+                                    onClick={() => setIsMenuOpen(false)}
+                                >
+                                    Devin Townsend
+                                </span>
+                            </ReturnTransition>
+                        ) : (
+                            <PortalTransition>
+                                <span
+                                    className="block text-[var(--foreground-muted)] hover:text-[var(--amber)] transition-colors text-sm font-medium py-2 cursor-pointer"
+                                    onClick={() => setIsMenuOpen(false)}
+                                >
+                                    Dreampeace
+                                </span>
+                            </PortalTransition>
+                        )}
 
                         {isLoading ? (
                             <div className="w-full h-10 rounded-full bg-[var(--forest-mid)] animate-pulse" />

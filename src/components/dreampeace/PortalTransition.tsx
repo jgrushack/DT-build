@@ -1,11 +1,16 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
 export default function PortalTransition({ children }: { children: React.ReactNode }) {
     const router = useRouter();
     const [isTransitioning, setIsTransitioning] = useState(false);
+
+    // Prefetch on mount for instant availability
+    useEffect(() => {
+        router.prefetch('/dreampeace');
+    }, [router]);
 
     const handleEnter = (e: React.MouseEvent) => {
         e.preventDefault();

@@ -1,7 +1,7 @@
 import Image from 'next/image';
-import Link from 'next/link';
 import VisualizerBackground from '@/components/dreampeace/VisualizerBackground';
 import AmbientCard from '@/components/dreampeace/AmbientCard';
+import ReturnTransition from '@/components/dreampeace/ReturnTransition';
 import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
 import { DREAMPEACE_ALBUMS } from '@/lib/dreampeace-data';
@@ -134,13 +134,12 @@ export default function DreampeacePage() {
 
                     {/* Return Link */}
                     <div className="text-center pb-20">
-                        <Link
-                            href="/"
-                            className="group inline-flex items-center gap-3 px-8 py-4 bg-transparent border border-[var(--glass-border)] hover:border-[var(--accent)] text-[var(--foreground-muted)] hover:text-[var(--accent)] text-xs font-ethereal tracking-[0.2em] transition-all duration-500 backdrop-blur-sm"
-                        >
-                            <span className="group-hover:-translate-x-1 transition-transform duration-300">&larr;</span>
-                            RETURN TO REALITY
-                        </Link>
+                        <ReturnTransition>
+                            <span className="group inline-flex items-center gap-3 px-8 py-4 bg-transparent border border-[var(--glass-border)] hover:border-[var(--accent)] text-[var(--foreground-muted)] hover:text-[var(--accent)] text-xs font-ethereal tracking-[0.2em] transition-all duration-500 backdrop-blur-sm cursor-pointer">
+                                <span className="group-hover:-translate-x-1 transition-transform duration-300">&larr;</span>
+                                RETURN TO REALITY
+                            </span>
+                        </ReturnTransition>
                     </div>
                 </main>
 

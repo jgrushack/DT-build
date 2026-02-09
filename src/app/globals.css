@@ -72,9 +72,9 @@
   --background: #faf9f6;
   --background-elevated: #ffffff;
 
-  /* Deep Slate/Blue Text for Contrast */
-  --foreground: #2d3748;
-  --foreground-muted: #718096;
+  /* Soft Slate Text — ethereal, not stark */
+  --foreground: #64748b;
+  --foreground-muted: #a0aec0;
 
   /* Ethereal Accents */
   --accent: #805ad5;
@@ -120,8 +120,8 @@ body {
 .bg-natural {
   background-color: var(--stone-deep);
   background-image:
-    linear-gradient(rgba(37, 34, 30, 0.85), rgba(26, 24, 21, 0.95)),
-    url('/bg-texture.png');
+    linear-gradient(rgba(37, 34, 30, 0.72), rgba(30, 28, 24, 0.82)),
+    url('/bg-texture.jpg');
   background-size: cover;
   background-position: center;
   background-attachment: fixed;
@@ -131,10 +131,10 @@ body {
 .bg-stone-ambient {
   background-color: var(--stone-deep);
   background-image:
-    radial-gradient(ellipse at 30% 0%, rgba(138, 154, 123, 0.15) 0%, transparent 50%),
-    radial-gradient(ellipse at 70% 100%, rgba(201, 164, 92, 0.1) 0%, transparent 60%),
-    linear-gradient(rgba(37, 34, 30, 0.9), rgba(26, 24, 21, 0.95)),
-    url('/bg-texture.png');
+    radial-gradient(ellipse at 30% 0%, rgba(138, 154, 123, 0.18) 0%, transparent 50%),
+    radial-gradient(ellipse at 70% 100%, rgba(201, 164, 92, 0.12) 0%, transparent 60%),
+    linear-gradient(rgba(37, 34, 30, 0.75), rgba(30, 28, 24, 0.85)),
+    url('/bg-texture.jpg');
   background-size: cover;
   background-position: center;
   background-attachment: fixed;
@@ -190,38 +190,65 @@ body {
 
 /* ============================================================================
    LIQUID GLASS EFFECT
-   Premium glass with refraction-like gradient
+   Premium glass with refraction-like gradient and highlight edge
    ============================================================================ */
 
 .liquid-glass {
   background:
     linear-gradient(135deg,
-      rgba(138, 154, 123, 0.1) 0%,
-      rgba(42, 40, 36, 0.6) 50%,
-      rgba(61, 43, 31, 0.2) 100%);
+      rgba(138, 154, 123, 0.08) 0%,
+      rgba(42, 40, 36, 0.55) 40%,
+      rgba(50, 48, 43, 0.5) 60%,
+      rgba(61, 43, 31, 0.15) 100%);
   backdrop-filter: blur(var(--glass-blur-heavy));
   -webkit-backdrop-filter: blur(var(--glass-blur-heavy));
   border: 1px solid var(--glass-border);
+  border-top-color: rgba(255, 255, 255, 0.08);
+  border-left-color: rgba(255, 255, 255, 0.06);
   border-radius: var(--radius-xl);
   box-shadow:
-    inset 0 1px 1px rgba(255, 255, 255, 0.05),
-    var(--shadow-ambient);
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.1),
+    0 4px 24px rgba(0, 0, 0, 0.15),
+    0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 /* Liquid glass with amber glow */
 .liquid-glass-amber {
   background:
     linear-gradient(135deg,
-      rgba(201, 164, 92, 0.08) 0%,
-      rgba(42, 40, 36, 0.6) 50%,
-      rgba(138, 154, 123, 0.1) 100%);
+      rgba(201, 164, 92, 0.06) 0%,
+      rgba(42, 40, 36, 0.55) 40%,
+      rgba(50, 48, 43, 0.5) 60%,
+      rgba(138, 154, 123, 0.08) 100%);
   backdrop-filter: blur(var(--glass-blur-heavy));
   -webkit-backdrop-filter: blur(var(--glass-blur-heavy));
-  border: 1px solid rgba(201, 164, 92, 0.2);
+  border: 1px solid rgba(201, 164, 92, 0.18);
+  border-top-color: rgba(255, 255, 255, 0.08);
   border-radius: var(--radius-xl);
   box-shadow:
-    inset 0 1px 1px rgba(255, 255, 255, 0.05),
-    var(--shadow-glow);
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.08),
+    0 0 40px rgba(201, 164, 92, 0.12),
+    0 4px 24px rgba(0, 0, 0, 0.12);
+}
+
+/* Liquid glass — light variant for Dreampeace / light themes */
+.liquid-glass-light {
+  background:
+    linear-gradient(135deg,
+      rgba(255, 255, 255, 0.7) 0%,
+      rgba(255, 255, 255, 0.5) 40%,
+      rgba(245, 240, 255, 0.4) 100%);
+  backdrop-filter: blur(var(--glass-blur-heavy));
+  -webkit-backdrop-filter: blur(var(--glass-blur-heavy));
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  border-top-color: rgba(255, 255, 255, 0.9);
+  border-radius: var(--radius-xl);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.5),
+    0 4px 24px rgba(0, 0, 0, 0.06),
+    0 1px 3px rgba(0, 0, 0, 0.04);
 }
 
 /* ============================================================================
@@ -509,14 +536,17 @@ body {
 }
 
 .animate-portal-fade-in {
+  will-change: opacity;
   animation: portal-fade-in 3.5s cubic-bezier(0.2, 0, 0.2, 1) forwards;
 }
 
 .animate-portal-expand {
+  will-change: transform, opacity, filter;
   animation: portal-expand 4s cubic-bezier(0.25, 0.1, 0.25, 1) forwards;
 }
 
 .animate-portal-text {
+  will-change: opacity, transform;
   animation: text-emerge 2s ease-out forwards;
   animation-delay: 1.5s;
   /* Wait for whiteout */
@@ -526,6 +556,72 @@ body {
 .animate-arrival {
   animation: portal-fade-out 2.5s ease-in-out forwards;
   pointer-events: none;
+}
+
+/* ============================================================================
+   RETURN TRANSITION (Dreampeace → Main Site)
+   Warm dissolve — like gently waking from a dream
+   ============================================================================ */
+
+/* 1. Warm vignette closes in */
+@keyframes return-vignette {
+  0% {
+    opacity: 0;
+    backdrop-filter: blur(0px);
+  }
+
+  60% {
+    opacity: 1;
+    backdrop-filter: blur(4px);
+  }
+
+  100% {
+    opacity: 1;
+    backdrop-filter: blur(12px);
+  }
+}
+
+/* 2. Soft text drift-up */
+@keyframes return-text {
+  0% {
+    opacity: 0;
+    transform: translateY(8px);
+    letter-spacing: 0.15em;
+  }
+
+  100% {
+    opacity: 0.7;
+    transform: translateY(0);
+    letter-spacing: 0.25em;
+  }
+}
+
+/* 3. Final warm wash before navigation */
+@keyframes return-wash {
+  0% {
+    opacity: 0;
+  }
+
+  100% {
+    opacity: 1;
+  }
+}
+
+.animate-return-vignette {
+  will-change: opacity, backdrop-filter;
+  animation: return-vignette 2s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+.animate-return-text {
+  will-change: opacity, transform;
+  animation: return-text 1.4s ease-out forwards;
+  animation-delay: 0.4s;
+}
+
+.animate-return-wash {
+  will-change: opacity;
+  animation: return-wash 1s ease-in forwards;
+  animation-delay: 1.6s;
 }
 
 /* Natural shadows */

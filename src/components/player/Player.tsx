@@ -19,6 +19,7 @@ export default function Player() {
         queue,
         isLoading,
         error,
+        visualizerActive,
     } = usePlayerStore();
 
     const { pause, resume, next, previous, seek, setVolume, clearQueue, removeFromQueue, play } = usePlayerStore();
@@ -36,7 +37,7 @@ export default function Player() {
         setShowQueue(false);
     };
 
-    if (!currentTrack) return null;
+    if (!currentTrack || visualizerActive) return null;
 
     return (
         <>

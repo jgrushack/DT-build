@@ -4,6 +4,7 @@
 
 import { useEffect, useRef, useCallback } from 'react';
 import { usePlayerStore } from '@/store/playerStore';
+import { registerAudioElement, ensureConnected, resumeAudioContext } from '@/lib/audio-analyser';
 
 const STREAM_BASE = 'https://discoveryprovider.audius.co/v1/tracks';
 const APP_NAME = 'artist-portal-mvp';
@@ -48,6 +49,8 @@ export function usePlayer() {
         if (!audioRef.current) {
             audioRef.current = new Audio();
             audioRef.current.preload = 'auto';
+            // Register for Web Audio API analyser (connected lazily on first play)
+            registerAudioElement(audioRef.current);
         }
 
         const audio = audioRef.current;
@@ -127,6 +130,9 @@ export function usePlayer() {
         if (!audio || !currentTrack) return;
 
         if (isPlaying) {
+            // Lazily connect analyser on first play (needs user gesture)
+            ensureConnected();
+            resumeAudioContext();
             audio.play().catch(() => {
                 // Browser may block autoplay; pause the store
                 usePlayerStore.getState().pause();
