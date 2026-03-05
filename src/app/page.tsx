@@ -3,9 +3,11 @@ import { redirect } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
 import { DT_ARTIST, DT_ALBUMS, getPopularDTTracks } from '@/lib/dt-catalog';
+import { PODCAST_SERIES } from '@/lib/podcast-data';
 import PopularTracks from '@/components/player/PopularTracks';
 import PortalTransition from '@/components/dreampeace/PortalTransition';
 import AlbumCard from '@/components/catalog/AlbumCard';
+import PodcastCard from '@/components/podcast/PodcastCard';
 import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
 
@@ -116,6 +118,34 @@ export default async function HomePage() {
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-5">
             {albums.slice(0, 8).map((album) => (
               <AlbumCard key={album.id} album={album} />
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Divider */}
+      <div className="max-w-5xl mx-auto w-full px-4">
+        <div className="h-px bg-gradient-to-r from-transparent via-[var(--glass-border)] to-transparent" />
+      </div>
+
+      {/* Podcasts */}
+      <section className="py-12 px-4">
+        <div className="max-w-5xl mx-auto">
+          <div className="flex items-end justify-between mb-6">
+            <h2 className="text-lg font-semibold text-[var(--cream)]">Podcasts</h2>
+            <Link
+              href="/podcasts"
+              className="group text-[var(--amber)] hover:text-[var(--amber-light)] text-xs font-medium flex items-center gap-1 transition-colors"
+            >
+              See all
+              <svg className="w-3.5 h-3.5 transition-transform group-hover:translate-x-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </Link>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+            {PODCAST_SERIES.map((series) => (
+              <PodcastCard key={series.id} series={series} />
             ))}
           </div>
         </div>
