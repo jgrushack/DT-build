@@ -28,23 +28,24 @@ cp .env.example .env.local
 
 Fill in your Supabase credentials in `.env.local`:
 ```bash
-NEXT_PUBLIC_SUPABASE_URL=https://gaszfaokeuzwxoyqreqa.supabase.co
+NEXT_PUBLIC_SUPABASE_URL=https://<your-project-ref>.supabase.co
 NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=sb_publishable_...
 SUPABASE_SECRET_KEY=sb_secret_... # SECRET - never commit!
 ```
 
-### 2. Run the Database Migration
+### 2. Run the Database Migrations
+
+Apply migrations in order:
+- `supabase/migrations/001_initial_schema.sql` — users, content_access, play_events, linked_accounts
+- `supabase/migrations/002_dreampeace_backend.sql` — listening_sessions, audius_track_cache, audius_album_cache, user_preferences
 
 **Option A: Via Supabase Dashboard (Recommended for first-time)**
 1. Open your Supabase project dashboard
-2. Go to **SQL Editor**
-3. Click **New Query**
-4. Copy the contents of `supabase/migrations/001_initial_schema.sql`
-5. Paste into the editor
-6. Click **Run**
-7. Verify success (should see "Success. No rows returned")
+2. Go to **SQL Editor** → **New Query**
+3. Paste the contents of `001_initial_schema.sql`, click **Run**
+4. Repeat for `002_dreampeace_backend.sql`
 
-**Option B: Via Supabase CLI** (if you have it installed)
+**Option B: Via Supabase CLI**
 ```bash
 supabase db push
 ```
@@ -53,11 +54,9 @@ supabase db push
 
 In the Supabase dashboard:
 1. Go to **Table Editor**
-2. You should see 4 tables:
-   - `users`
-   - `content_access`
-   - `play_events`
-   - `linked_accounts`
+2. You should see 8 tables:
+   - From `001`: `users`, `content_access`, `play_events`, `linked_accounts`
+   - From `002`: `listening_sessions`, `audius_track_cache`, `audius_album_cache`, `user_preferences`
 
 ### 4. Run the Seed Script
 

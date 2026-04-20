@@ -1,51 +1,29 @@
 # Artist Portal MVP
 
-A gated, immersive fan portal for streaming an artist's complete music catalog. Built as a modern web application with a glassmorphism design system, persistent audio player, and a dedicated ambient listening sub-experience.
+A gated, immersive fan portal for Devin Townsend's Dreampeace ambient project. The full DT portal (catalog, albums, podcasts) lives on the `full-portal-v1` branch and will return in a later phase.
 
-## Features
+## Current launch scope
 
-### Authenticated Access
-- **Patreon OAuth** — requires an active patron subscription to the artist
-- **Audius OAuth** — requires following the artist on Audius
-- JWT-based session management with middleware-enforced route protection
+The app on `main` is a Patreon-gated single-section experience:
 
-### Music Catalog
-- Browse the full discography across 20+ albums and ~200 tracks
-- Genre filtering and search
-- Album detail pages with complete tracklists
-- Audio streaming via the Audius discovery provider
+1. **`/`** — a public fever-dream landing that crossfades into a Patreon sign-in card.
+2. **Patreon OAuth** — on success, lands the user directly on `/dreampeace`.
+3. **`/dreampeace`** — the ambient sub-experience: portal-style arrival fade, canvas audio visualizer driven by Web Audio API frequency analysis, 7 album-specific themes.
+4. **`/login`** — OAuth-error fallback rendering the same Patreon login card.
 
-### Persistent Audio Player
-- Fixed bottom bar with play/pause, skip, seek, and volume controls
-- Queue management (add, remove, reorder)
-- Global keyboard shortcuts (Space, arrow keys)
-- Zustand-powered state with a `_seekVersion` pattern for cross-component seek synchronization
-
-### Dreampeace — Ambient Sub-Experience
-- A separate immersive mode for ambient/meditation music
-- Animated portal transition (scale + blur tunnel effect) between the main site and Dreampeace
-- Real-time canvas audio visualizer driven by Web Audio API frequency analysis
-- 7 distinct visualizer themes: warm-pulse, aurora-sweep, sunrise-rays, nebula-field, falling-snow, rising-bubbles, water-ripples
-- Light theme override with soft cream/purple palette
-
-### Design System — Forest Glassmorphism
-- Warm, dark, natural aesthetic with a stone/sage/amber/cream palette
-- Multi-level glass panels using `backdrop-filter: blur()`
-- Premium liquid-glass variants with multi-stop gradient refraction
-- Custom animation system (float, shimmer, slide-up, portal transitions)
-- Context-aware navbar that adapts branding between main site and Dreampeace
+Non-Dreampeace routes (`/catalog`, `/album/*`, `/podcasts`, DT homepage) are not present on `main`. To restore the full portal later, check out files from `full-portal-v1`.
 
 ## Tech Stack
 
 | Layer | Technology |
 |---|---|
-| Framework | Next.js 16 (App Router) |
+| Framework | Next.js 16 (App Router, Turbopack) |
 | Language | TypeScript 5 |
 | Styling | Tailwind CSS v4 |
 | State | Zustand 5 |
-| Auth | Patreon OAuth, Audius OAuth, JWT (`jose`) |
-| Audio | Audius SDK v11, Web Audio API |
-| Database | Supabase |
+| Auth | Patreon OAuth (user gate), Audius OAuth (Dreampeace streaming), JWT (`jose`) |
+| Audio | Audius SDK, Web Audio API |
+| Database | Supabase (Postgres + RLS) |
 | Fonts | Geist Sans + Geist Mono |
 
 ## Getting Started
@@ -54,10 +32,11 @@ A gated, immersive fan portal for streaming an artist's complete music catalog. 
 
 - Node.js 18+
 - npm, yarn, pnpm, or bun
+- A Supabase project (see `supabase/README.md` for setup)
 
 ### Environment Variables
 
-Create a `.env.local` file with:
+Create `.env.local` with:
 
 ```env
 # Patreon OAuth
@@ -65,16 +44,19 @@ PATREON_CLIENT_ID=
 PATREON_CLIENT_SECRET=
 PATREON_REDIRECT_URI=
 
-# Audius
+# Audius (for Dreampeace streaming)
 AUDIUS_API_KEY=
 
-# JWT
+# JWT session signing
 JWT_SECRET=
 
-# Supabase
+# Supabase (per src/lib/supabase.ts)
 NEXT_PUBLIC_SUPABASE_URL=
-NEXT_PUBLIC_SUPABASE_ANON_KEY=
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=
+SUPABASE_SECRET_KEY=
 ```
+
+Run migrations before first boot (see `supabase/README.md`): `001_initial_schema.sql` then `002_dreampeace_backend.sql`.
 
 ### Development
 
@@ -83,7 +65,7 @@ npm install
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) to view the app. You'll be redirected to the login page until authenticated.
+Open [http://localhost:3000](http://localhost:3000). Unauthed users see the fever-dream sequence; authed users redirect straight to `/dreampeace`.
 
 ### Production Build
 
@@ -96,22 +78,25 @@ npm start
 
 ```
 src/
-├── app/                    # Next.js App Router pages
-│   ├── page.tsx            # Home (hero, popular tracks, albums)
-│   ├── login/              # Login / landing page
-│   ├── catalog/            # Full catalog browsing
-│   ├── album/[albumId]/    # Album detail pages
-│   ├── dreampeace/         # Ambient sub-experience
-│   └── api/auth/           # OAuth callback routes
+├── app/
+│   ├── page.tsx                 # Fever-dream landing (public; authed → /dreampeace)
+│   ├── login/                   # OAuth-error fallback card
+│   ├── dreampeace/              # Ambient experience
+│   ├── actions/                 # Server actions (sessions, preferences)
+│   └── api/
+│       ├── auth/                # Patreon + Audius OAuth callbacks
+│       └── device-tier/         # Pure scoring endpoint for visualizer quality
 ├── components/
-│   ├── player/             # Audio player UI (Player, ProgressBar, Queue, Volume)
-│   ├── layout/             # Navbar, Footer, AuthGate
-│   ├── catalog/            # AlbumCard, TrackCard, FilterBar
-│   └── dreampeace/         # Visualizer, transitions, ambient cards
-├── store/                  # Zustand player store
-├── hooks/                  # usePlayer, useAuth
-├── lib/                    # Catalog data, auth helpers, types
-└── middleware.ts           # JWT auth enforcement
+│   ├── landing/                 # FeverDream, LoginCard
+│   ├── layout/                  # Navbar, Footer, AuthGate
+│   ├── player/                  # Audio player UI + Zustand wrapper
+│   └── dreampeace/              # Visualizer, transitions, ambient cards
+├── hooks/                       # usePlayer, useAuth, useDeviceTier
+├── lib/                         # audius, audius-cache, auth-helpers, jwt, supabase, types
+├── store/                       # Zustand player store
+└── middleware.ts                # JWT enforcement; PUBLIC_PATHS = /, /login, /api/auth, /api/device-tier
+
+supabase/migrations/             # 001 initial + 002 dreampeace backend
 ```
 
 ## License
