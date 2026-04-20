@@ -31,7 +31,7 @@ export async function GET(request: NextRequest) {
       authProvider: 'patreon',
     });
 
-    const response = NextResponse.redirect(new URL('/', request.url));
+    const response = NextResponse.redirect(new URL('/dreampeace', request.url));
     response.cookies.set('auth_token', jwt, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
