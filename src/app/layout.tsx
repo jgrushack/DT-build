@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import "./fonts.css";
 import "./globals.css";
 import PlayerWrapper from "@/components/player/PlayerWrapper";
 import { AuthProvider } from "@/contexts/AuthContext";

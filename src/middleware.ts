@@ -8,7 +8,7 @@ function getSecret() {
 }
 
 const PUBLIC_PATHS = ['/', '/login', '/api/auth', '/api/device-tier'];
-const STATIC_PREFIXES = ['/_next', '/favicon.ico', '/images'];
+const STATIC_PREFIXES = ['/_next', '/favicon.ico', '/images', '/fonts'];
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;

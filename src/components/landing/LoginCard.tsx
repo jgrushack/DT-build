@@ -7,8 +7,8 @@ type LoginCardProps = {
   error?: string | null;
 };
 
-// Wordmark font — heavy Geist at display size. Must match Tailwind's text-6xl font-bold.
-const WORDMARK_FONT = '700 60px "Geist", system-ui, -apple-system, sans-serif';
+// Wordmark font — Avernus URW Medium at display size (the only licensed weight).
+const WORDMARK_FONT = '500 60px "Avernus URW", system-ui, -apple-system, sans-serif';
 
 export default function LoginCard({ error }: LoginCardProps) {
   const [handingOff, setHandingOff] = useState(false);
@@ -34,15 +34,15 @@ export default function LoginCard({ error }: LoginCardProps) {
             as="h1"
             text="Devin"
             font={WORDMARK_FONT}
-            className="leading-none tracking-tight"
-            style={{ color: '#25221e', letterSpacing: '-0.02em', display: 'block' }}
+            className="leading-none"
+            style={{ color: '#25221e', letterSpacing: '0.01em', display: 'block', fontWeight: 500 }}
           />
           <ReactiveText
             as="h1"
             text="Townsend"
             font={WORDMARK_FONT}
-            className="leading-none tracking-tight"
-            style={{ letterSpacing: '-0.02em', display: 'block' }}
+            className="leading-none"
+            style={{ letterSpacing: '0.01em', display: 'block', fontWeight: 500 }}
             gradientBg="linear-gradient(90deg, #a88a45, #c9a45c)"
           />
           <div className="w-12 h-px bg-gradient-to-r from-transparent via-[#a88a45] to-transparent mx-auto mt-6 mb-4" />
