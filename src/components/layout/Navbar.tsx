@@ -65,21 +65,13 @@ export default function Navbar() {
                                 </span>
                             </ReturnTransition>
                         ) : (
-                            /* On main site: show nav links */
-                            <>
-                                <Link
-                                    href="/podcasts"
-                                    className="text-[var(--foreground-muted)] hover:text-[var(--amber)] transition-colors text-sm font-medium"
-                                >
-                                    Podcasts
-                                </Link>
-                                <PortalTransition>
-                                    <span className="text-[var(--foreground-muted)] hover:text-[var(--amber)] transition-colors text-sm font-medium flex items-center gap-1.5 cursor-pointer">
-                                        <span className="w-1.5 h-1.5 rounded-full bg-[var(--sage)]"></span>
-                                        Dreampeace
-                                    </span>
-                                </PortalTransition>
-                            </>
+                            /* On main site: show Dreampeace link */
+                            <PortalTransition>
+                                <span className="text-[var(--foreground-muted)] hover:text-[var(--amber)] transition-colors text-sm font-medium flex items-center gap-1.5 cursor-pointer">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-[var(--sage)]"></span>
+                                    Dreampeace
+                                </span>
+                            </PortalTransition>
                         )}
 
                         {isLoading ? (
@@ -162,23 +154,14 @@ export default function Navbar() {
                                 </span>
                             </ReturnTransition>
                         ) : (
-                            <>
-                                <Link
-                                    href="/podcasts"
-                                    className="block text-[var(--foreground-muted)] hover:text-[var(--amber)] transition-colors text-sm font-medium py-2"
+                            <PortalTransition>
+                                <span
+                                    className="block text-[var(--foreground-muted)] hover:text-[var(--amber)] transition-colors text-sm font-medium py-2 cursor-pointer"
                                     onClick={() => setIsMenuOpen(false)}
                                 >
-                                    Podcasts
-                                </Link>
-                                <PortalTransition>
-                                    <span
-                                        className="block text-[var(--foreground-muted)] hover:text-[var(--amber)] transition-colors text-sm font-medium py-2 cursor-pointer"
-                                        onClick={() => setIsMenuOpen(false)}
-                                    >
-                                        Dreampeace
-                                    </span>
-                                </PortalTransition>
-                            </>
+                                    Dreampeace
+                                </span>
+                            </PortalTransition>
                         )}
 
                         {isLoading ? (

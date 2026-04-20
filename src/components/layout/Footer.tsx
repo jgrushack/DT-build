@@ -25,18 +25,6 @@ export default function Footer() {
                             Audius
                         </Link>
                         <Link
-                            href="/catalog"
-                            className="text-[var(--sage)] hover:text-[var(--sage-light)] text-sm transition-colors"
-                        >
-                            Explore
-                        </Link>
-                        <Link
-                            href="/podcasts"
-                            className="text-[var(--sage)] hover:text-[var(--sage-light)] text-sm transition-colors"
-                        >
-                            Podcasts
-                        </Link>
-                        <Link
                             href="/dreampeace"
                             className="text-[var(--sage)] hover:text-[var(--amber)] text-sm transition-colors"
                         >
