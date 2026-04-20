@@ -30,18 +30,17 @@ export default function FeverDream({ loginError = null }: FeverDreamProps) {
   return (
     <div
       className="fixed inset-0 overflow-hidden flex items-center justify-center"
-      style={{ background: '#0a0908' }}
+      style={{ background: '#f5f0e8' }}
     >
       {/*
         VISUAL LAYER — placeholder.
         Visualizer Claude will replace this with the fever-dream visual component.
-        Contract: full-bleed, absolute positioned, reads `phase` to know when to dim
-        (or use the provided opacity class on the wrapper below).
+        Cream substrate with low-opacity drifting amber/sage washes — ethereal, misty.
       */}
       <div
         aria-hidden
         className={`absolute inset-0 transition-opacity duration-[1200ms] ease-[cubic-bezier(0.22,1,0.36,1)] ${
-          phase === 'login' ? 'opacity-40' : 'opacity-100'
+          phase === 'login' ? 'opacity-60' : 'opacity-100'
         }`}
       >
         <div className="absolute inset-0 animate-dream-drift-a" />
@@ -53,7 +52,7 @@ export default function FeverDream({ loginError = null }: FeverDreamProps) {
       <button
         type="button"
         onClick={handleSkip}
-        className={`absolute bottom-10 left-1/2 -translate-x-1/2 z-10 text-[10px] uppercase tracking-[0.4em] text-[#a4b396]/60 hover:text-[#f5f0e8] transition-opacity duration-1000 ${
+        className={`absolute bottom-10 left-1/2 -translate-x-1/2 z-10 text-[10px] uppercase tracking-[0.4em] text-[#6b7a5e] hover:text-[#25221e] transition-opacity duration-1000 ${
           skipVisible && phase === 'dreaming' ? 'opacity-100' : 'opacity-0 pointer-events-none'
         }`}
       >
@@ -75,26 +74,26 @@ export default function FeverDream({ loginError = null }: FeverDreamProps) {
       <style jsx>{`
         @keyframes dream-drift-a {
           0%, 100% {
-            background: radial-gradient(ellipse 80% 60% at 30% 40%, rgba(201, 164, 92, 0.08) 0%, transparent 60%);
+            background: radial-gradient(ellipse 80% 60% at 30% 40%, rgba(201, 164, 92, 0.14) 0%, transparent 60%);
           }
           50% {
-            background: radial-gradient(ellipse 90% 70% at 60% 55%, rgba(201, 164, 92, 0.14) 0%, transparent 65%);
+            background: radial-gradient(ellipse 90% 70% at 60% 55%, rgba(201, 164, 92, 0.22) 0%, transparent 65%);
           }
         }
         @keyframes dream-drift-b {
           0%, 100% {
-            background: radial-gradient(ellipse 70% 50% at 70% 60%, rgba(138, 154, 123, 0.06) 0%, transparent 60%);
+            background: radial-gradient(ellipse 70% 50% at 70% 60%, rgba(138, 154, 123, 0.12) 0%, transparent 60%);
           }
           50% {
-            background: radial-gradient(ellipse 60% 45% at 35% 45%, rgba(138, 154, 123, 0.10) 0%, transparent 65%);
+            background: radial-gradient(ellipse 60% 45% at 35% 45%, rgba(138, 154, 123, 0.20) 0%, transparent 65%);
           }
         }
         @keyframes dream-pulse {
           0%, 100% {
-            background: radial-gradient(ellipse at center, rgba(20, 18, 16, 0.6) 0%, #0a0908 70%);
+            background: radial-gradient(ellipse at center, rgba(245, 240, 232, 0) 0%, rgba(229, 221, 208, 0.5) 100%);
           }
           50% {
-            background: radial-gradient(ellipse at center, rgba(20, 18, 16, 0.3) 0%, #0a0908 70%);
+            background: radial-gradient(ellipse at center, rgba(245, 240, 232, 0) 0%, rgba(229, 221, 208, 0.2) 100%);
           }
         }
         .animate-dream-drift-a {
