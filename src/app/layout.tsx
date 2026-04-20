@@ -4,6 +4,7 @@ import "./globals.css";
 import PlayerWrapper from "@/components/player/PlayerWrapper";
 import { AuthProvider } from "@/contexts/AuthContext";
 import AuthGate from "@/components/layout/AuthGate";
+import PortalChrome from "@/components/layout/PortalChrome";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -32,6 +33,7 @@ export default function RootLayout({
       >
         <AuthProvider>
           {children}
+          <PortalChrome />
           <AuthGate>
             <PlayerWrapper />
           </AuthGate>

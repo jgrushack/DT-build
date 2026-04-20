@@ -1,10 +1,14 @@
 'use client';
 
 import { useState } from 'react';
+import ReactiveText from '@/components/text/ReactiveText';
 
 type LoginCardProps = {
   error?: string | null;
 };
+
+// Wordmark font — heavy Geist at display size. Must match Tailwind's text-6xl font-bold.
+const WORDMARK_FONT = '700 60px "Geist", system-ui, -apple-system, sans-serif';
 
 export default function LoginCard({ error }: LoginCardProps) {
   const [handingOff, setHandingOff] = useState(false);
@@ -26,12 +30,21 @@ export default function LoginCard({ error }: LoginCardProps) {
           <p className="text-[#a88a45] text-xs font-medium uppercase tracking-[0.3em] mb-4">
             Exclusive Access
           </p>
-          <h1 className="text-5xl md:text-6xl font-bold text-[#25221e] leading-none tracking-tight">
-            Devin
-          </h1>
-          <h1 className="text-5xl md:text-6xl font-bold leading-none tracking-tight bg-gradient-to-r from-[#a88a45] to-[#c9a45c] bg-clip-text text-transparent">
-            Townsend
-          </h1>
+          <ReactiveText
+            as="h1"
+            text="Devin"
+            font={WORDMARK_FONT}
+            className="leading-none tracking-tight"
+            style={{ color: '#25221e', letterSpacing: '-0.02em', display: 'block' }}
+          />
+          <ReactiveText
+            as="h1"
+            text="Townsend"
+            font={WORDMARK_FONT}
+            className="leading-none tracking-tight"
+            style={{ letterSpacing: '-0.02em', display: 'block' }}
+            gradientBg="linear-gradient(90deg, #a88a45, #c9a45c)"
+          />
           <div className="w-12 h-px bg-gradient-to-r from-transparent via-[#a88a45] to-transparent mx-auto mt-6 mb-4" />
           <p className="text-[#6b7a5e] text-sm">
             Patreon subscribers only
