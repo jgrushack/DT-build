@@ -214,3 +214,39 @@ export interface PlayerState {
     isLoading: boolean;
     error: string | null;
 }
+
+// ============================================================================
+// Device Tier & Preferences — Dreampeace backend contract.
+// Source of truth for the shape consumed by the frontend visualizer.
+// ============================================================================
+
+export type DeviceTier = 'low' | 'mid' | 'high';
+
+export type QualityOverride = 'auto' | 'low' | 'mid' | 'high';
+
+export interface UserPreferences {
+    deviceTier: DeviceTier;
+    reducedMotion: boolean;
+    qualityOverride: QualityOverride;
+    lastAlbumId: string | null;
+    lastTrackId: string | null;
+}
+
+export interface DeviceTierSignal {
+    hardwareConcurrency?: number;
+    deviceMemory?: number;
+    devicePixelRatio?: number;
+    hasLowBattery?: boolean;
+    prefersReducedMotion?: boolean;
+}
+
+export interface ListeningSession {
+    id: string;
+    userId: string;
+    trackId: string;
+    albumId: string | null;
+    startedAt: string;
+    endedAt: string | null;
+    durationMs: number;
+    deviceTier: DeviceTier | null;
+}

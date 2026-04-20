@@ -7,7 +7,7 @@ function getSecret() {
   return new TextEncoder().encode(secret);
 }
 
-const PUBLIC_PATHS = ['/', '/login', '/api/auth'];
+const PUBLIC_PATHS = ['/', '/login', '/api/auth', '/api/device-tier'];
 const STATIC_PREFIXES = ['/_next', '/favicon.ico', '/images'];
 
 export async function middleware(request: NextRequest) {
