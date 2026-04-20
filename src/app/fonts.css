@@ -1,7 +1,15 @@
 /* Avernus URW — site-wide display + body typeface.
-   Only the Medium weight (500) is licensed here; font-synthesis-weight is
-   disabled so "font-bold" utilities render at 500 instead of synthesizing a
-   heavier weight that would look crude at display sizes. */
+   Three weights are licensed here: Light (300), Medium (500), Bold (700).
+   font-synthesis-weight stays enabled by default so Tailwind's font-semibold
+   (600) etc. can synthesize smoothly between the real weights. */
+
+@font-face {
+    font-family: 'Avernus URW';
+    src: url('/fonts/avernus/URWAvernus-Light.woff2') format('woff2');
+    font-weight: 300;
+    font-style: normal;
+    font-display: swap;
+}
 
 @font-face {
     font-family: 'Avernus URW';
@@ -12,8 +20,15 @@
     font-display: swap;
 }
 
+@font-face {
+    font-family: 'Avernus URW';
+    src: url('/fonts/avernus/URWAvernus-Bold.woff2') format('woff2');
+    font-weight: 700;
+    font-style: normal;
+    font-display: swap;
+}
+
 html,
 body {
     font-family: 'Avernus URW', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-    font-synthesis-weight: none;
 }
