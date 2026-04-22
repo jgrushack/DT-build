@@ -146,12 +146,13 @@ export default function DreampeaceLandingClient({ stars }: Props) {
 
             {tier.grainEnabled && <div className="absolute inset-0 dp-grain z-[5]" />}
 
-            {/* ========== Sleep toggle — top right ========== */}
+            {/* ========== Sleep toggle — top right, sits LEFT of PortalChrome's
+                avatar (top-4 right-5, ~32px wide) so they don't stack. ======== */}
             <button
                 type="button"
                 onClick={() => setSleep((v) => !v)}
                 aria-label={sleep ? 'Switch to day' : 'Switch to sleep'}
-                className="absolute top-6 right-6 z-[60] w-9 h-9 flex items-center justify-center rounded-full focus:outline-none group opacity-0"
+                className="fixed top-[18px] right-[60px] z-[95] w-9 h-9 flex items-center justify-center rounded-full focus:outline-none group opacity-0"
                 style={{
                     animation: 'dp-surface-content 1.4s cubic-bezier(0.22, 1, 0.36, 1) 2200ms forwards',
                 }}

@@ -31,7 +31,10 @@ export default function PortalChrome() {
         return () => document.removeEventListener('mousedown', handleOutside);
     }, [menuOpen]);
 
-    if (!pathname?.startsWith('/dreampeace')) return null;
+    // Only show on the /dreampeace home. Album pages (/dreampeace/[albumId])
+    // have their own top chrome (HomeGlyph "Return" top-left + Sleep toggle
+    // top-right) and PortalChrome would stack on top of both.
+    if (pathname !== '/dreampeace') return null;
     if (!isAuthenticated || !user) return null;
 
     const handleLogout = async () => {
