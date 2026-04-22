@@ -1,113 +1,166 @@
 'use client';
 
 import { useEffect, useRef, useState, useCallback } from 'react';
-import Image from 'next/image';
-import Link from 'next/link';
+import { useSearchParams, usePathname, useRouter } from 'next/navigation';
 import type { Track, Playlist } from '@/lib/types';
-import type { VisualizerTheme } from '@/lib/dreampeace-data';
+import type { VisualizerTheme, Credit } from '@/lib/dreampeace-data';
 import { usePlayerStore } from '@/store/playerStore';
 import { formatDuration } from '@/lib/audius';
-import VisualizerBackground from '@/components/dreampeace/VisualizerBackground';
+import Image from 'next/image';
 import AudioVisualizer from '@/components/dreampeace/AudioVisualizer';
-import Navbar from '@/components/layout/Navbar';
+import HomeGlyph from '@/components/dreampeace/HomeGlyph';
+import StarText from '@/components/dreampeace/StarText';
+import DreamText from '@/components/dreampeace/DreamText';
+import { useDeviceTier } from '@/hooks/useDeviceTier';
+import { useVisualizerSignal } from '@/hooks/useVisualizerSignal';
 
-interface DreampeaceAlbumClientProps {
-    album: Playlist;
-    visualizerTheme: VisualizerTheme;
+const EIGHT_HOURS_MS = 8 * 60 * 60 * 1000;
+
+// Collapse credits by name so the drawer reads as liner notes (one entry per
+// person, multiple roles joined) instead of repeating the same name once per
+// hat they wore. `note` is a scope qualifier like a specific track title; it
+// breaks out its own entry because pairing it to an aggregated role list loses
+// meaning ("Co-Composer on Blue Dot" isn't the same as "Co-Composer").
+function groupCredits(credits: Credit[]): Array<{ roles: string[]; name: string; note?: string }> {
+    const out: Array<{ roles: string[]; name: string; note?: string }> = [];
+    const index = new Map<string, number>();
+    for (const c of credits) {
+        const key = c.note ? `__scoped__${out.length}` : c.name;
+        const existing = index.get(key);
+        if (existing !== undefined) {
+            out[existing].roles.push(c.role);
+        } else {
+            index.set(key, out.length);
+            out.push({ roles: [c.role], name: c.name, note: c.note });
+        }
+    }
+    return out;
 }
 
-export default function DreampeaceAlbumClient({ album, visualizerTheme }: DreampeaceAlbumClientProps) {
-    const { play, pause, resume, next, previous, addToQueue, currentTrack, isPlaying, progress, duration, isLoading } = usePlayerStore();
+interface Props {
+    album: Playlist;
+    visualizerTheme: VisualizerTheme;
+    credits: Credit[];
+}
+
+// Album page = the dream itself. Visualizer is always active.
+// Before first play: the whole screen is click-to-begin.
+// After first play: tap toggles overlay chrome, music continues.
+export default function DreampeaceAlbumClient({ album, visualizerTheme, credits }: Props) {
+    const { play, pause, resume, next, previous, addToQueue, currentTrack, isPlaying, progress, duration, isLoading } =
+        usePlayerStore();
     const setVisualizerActive = usePlayerStore((s) => s.setVisualizerActive);
+    // Reading queue length (not the array itself) keeps us subscribed to size changes only.
+    const queueLength = usePlayerStore((s) => s.queue.length);
 
-    const [visualizerMode, setVisualizerMode] = useState(false);
-    const [showSidebar, setShowSidebar] = useState(false);
-    const [isFullscreen, setIsFullscreen] = useState(false);
-    const [showControls, setShowControls] = useState(true);
+    const searchParams = useSearchParams();
+    const pathname = usePathname();
+    const router = useRouter();
+    const sleepMode = searchParams?.get('sleep') === '1';
+
+    const toggleSleep = (e: React.MouseEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        router.replace(sleepMode ? pathname! : `${pathname}?sleep=1`, { scroll: false });
+    };
+
+    const tier = useDeviceTier();
+    const signal = useVisualizerSignal();
     const containerRef = useRef<HTMLDivElement>(null);
-    const controlsTimerRef = useRef<ReturnType<typeof setTimeout>>(null);
-    const sidebarTimerRef = useRef<ReturnType<typeof setTimeout>>(null);
+    const idleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const sessionStartRef = useRef<number | null>(null);
+    const [sessionExpired, setSessionExpired] = useState(false);
 
-    // Check if current track belongs to this album
-    const isAlbumPlaying = currentTrack ? album.tracks.some(t => t.id === currentTrack.id) : false;
+    const [showOverlay, setShowOverlay] = useState(true);
+    const [showTracklist, setShowTracklist] = useState(false);
+    const [isFullscreen, setIsFullscreen] = useState(false);
+    const [hasStarted, setHasStarted] = useState(false);
 
-    // Enter visualizer mode when this album starts playing
+    const isAlbumPlaying = currentTrack ? album.tracks.some((t) => t.id === currentTrack.id) : false;
+    const activeTrackTitle = isAlbumPlaying ? currentTrack?.title ?? null : null;
+
+    // Visualizer is always active on this page
     useEffect(() => {
-        if (isAlbumPlaying && isPlaying) {
-            setVisualizerMode(true);
-            setVisualizerActive(true);
-        }
-    }, [isAlbumPlaying, isPlaying, setVisualizerActive]);
-
-    // Auto-open sidebar when entering visualizer mode, then auto-close after 4s
-    useEffect(() => {
-        if (visualizerMode) {
-            setShowSidebar(true);
-            if (sidebarTimerRef.current) clearTimeout(sidebarTimerRef.current);
-            sidebarTimerRef.current = setTimeout(() => setShowSidebar(false), 4000);
-        }
-        return () => {
-            if (sidebarTimerRef.current) clearTimeout(sidebarTimerRef.current);
-        };
-    }, [visualizerMode]);
-
-    // Exit visualizer mode on pause
-    useEffect(() => {
-        if (!isPlaying && visualizerMode) {
-            // Small delay so the transition feels intentional
-            const timer = setTimeout(() => {
-                setVisualizerMode(false);
-                setVisualizerActive(false);
-            }, 600);
-            return () => clearTimeout(timer);
-        }
-    }, [isPlaying, visualizerMode, setVisualizerActive]);
-
-    // Clean up on unmount
-    useEffect(() => {
-        return () => {
-            setVisualizerActive(false);
-        };
+        setVisualizerActive(true);
+        return () => setVisualizerActive(false);
     }, [setVisualizerActive]);
 
-    // Fullscreen controls auto-hide
-    const resetControlsTimer = useCallback(() => {
-        setShowControls(true);
-        if (controlsTimerRef.current) clearTimeout(controlsTimerRef.current);
-        if (isFullscreen) {
-            controlsTimerRef.current = setTimeout(() => setShowControls(false), 3000);
+    // 8-hour session expiry for sleep mode. Timer starts when the user first
+    // taps to begin (not on mount, so pre-play idle time doesn't count).
+    useEffect(() => {
+        if (!sleepMode || !hasStarted) return;
+        if (sessionStartRef.current === null) {
+            sessionStartRef.current = Date.now();
         }
-    }, [isFullscreen]);
+        const elapsed = Date.now() - sessionStartRef.current;
+        const remaining = EIGHT_HOURS_MS - elapsed;
+        if (remaining <= 0) {
+            setSessionExpired(true);
+            return;
+        }
+        const t = setTimeout(() => setSessionExpired(true), remaining);
+        return () => clearTimeout(t);
+    }, [sleepMode, hasStarted]);
+
+    // Loop refill — when sleep mode is active and the queue empties while the
+    // user is on the last track, re-queue the whole album so `next()` keeps
+    // playback going. Stops once the 8-hour session expires.
+    useEffect(() => {
+        if (!sleepMode || sessionExpired || !hasStarted) return;
+        if (!currentTrack) return;
+        const idx = album.tracks.findIndex((t) => t.id === currentTrack.id);
+        if (idx === -1) return;
+
+        const isLast = idx === album.tracks.length - 1;
+        if (isLast && queueLength === 0) {
+            // Re-queue the full album (current track keeps playing; the refill
+            // lands behind it so next() picks up track 1 when this one ends).
+            album.tracks.forEach((t) => addToQueue(t));
+        }
+    }, [sleepMode, sessionExpired, hasStarted, currentTrack, queueLength, album.tracks, addToQueue]);
+
+    // Idle timeout — hide overlay chrome after 3.5s of no pointer activity,
+    // but only AFTER the user has started the album. Pre-play, the welcome stays.
+    const resetIdle = useCallback(() => {
+        if (!hasStarted) return;
+        setShowOverlay(true);
+        if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
+        idleTimerRef.current = setTimeout(() => setShowOverlay(false), 3500);
+    }, [hasStarted]);
 
     useEffect(() => {
-        if (!isFullscreen) {
-            setShowControls(true);
-            if (controlsTimerRef.current) clearTimeout(controlsTimerRef.current);
-        } else {
-            resetControlsTimer();
-        }
-    }, [isFullscreen, resetControlsTimer]);
-
-    // Listen for fullscreen changes
-    useEffect(() => {
-        const onFullscreenChange = () => {
-            setIsFullscreen(!!document.fullscreenElement);
+        if (!hasStarted) return;
+        resetIdle();
+        const el = containerRef.current;
+        if (!el) return;
+        const events: Array<keyof DocumentEventMap> = ['pointermove', 'touchstart', 'keydown'];
+        events.forEach((e) => el.addEventListener(e, resetIdle));
+        return () => {
+            events.forEach((e) => el.removeEventListener(e, resetIdle));
+            if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
         };
+    }, [resetIdle, hasStarted]);
+
+    // Fullscreen listener
+    useEffect(() => {
+        const onFullscreenChange = () => setIsFullscreen(!!document.fullscreenElement);
         document.addEventListener('fullscreenchange', onFullscreenChange);
         return () => document.removeEventListener('fullscreenchange', onFullscreenChange);
     }, []);
 
-    const handlePlay = (track: Track) => {
+    const startAlbum = () => {
+        if (album.tracks.length === 0) return;
+        play(album.tracks[0]);
+        album.tracks.slice(1).forEach((t) => addToQueue(t));
+        setHasStarted(true);
+    };
+
+    const handlePlayTrack = (track: Track) => {
         play(track);
         const trackIndex = album.tracks.indexOf(track);
         const remaining = album.tracks.slice(trackIndex + 1);
         remaining.forEach((t) => addToQueue(t));
-    };
-
-    const handlePlayAll = () => {
-        if (album.tracks.length === 0) return;
-        play(album.tracks[0]);
-        album.tracks.slice(1).forEach((t) => addToQueue(t));
+        setHasStarted(true);
     };
 
     const toggleFullscreen = async () => {
@@ -119,103 +172,268 @@ export default function DreampeaceAlbumClient({ album, visualizerTheme }: Dreamp
         }
     };
 
-    const totalDuration = album.tracks.reduce((sum, t) => sum + t.duration, 0);
+    // Pre-play: any click/tap on the main surface begins playback.
+    // Post-play: tap toggles overlay (summons UI chrome).
+    // Buttons inside the overlay stop propagation so they don't interfere.
+    const handleSurfaceClick = () => {
+        if (!hasStarted) {
+            startAlbum();
+            return;
+        }
+        setShowOverlay((v) => !v);
+    };
 
-    // Format current time
+    const progressPct = duration > 0 ? progress * 100 : 0;
     const currentTime = duration > 0 ? Math.floor(progress * duration) : 0;
+
+    const albumStyle = {
+        '--dp-ember': visualizerTheme.ember,
+        '--dp-field-a': visualizerTheme.fieldA,
+        '--dp-field-b': visualizerTheme.fieldB,
+    } as React.CSSProperties;
 
     return (
         <div
             ref={containerRef}
-            className={`theme-dreampeace min-h-screen text-[var(--foreground)] font-sans selection:bg-[var(--accent)] selection:text-white relative ${
-                isFullscreen ? 'bg-white' : ''
-            }`}
-            onMouseMove={isFullscreen ? resetControlsTimer : undefined}
+            className={`${sleepMode ? 'theme-dreampeace-sleep' : 'theme-dreampeace'} fixed inset-0 overflow-hidden cursor-pointer`}
+            onClick={handleSurfaceClick}
+            style={{ ...albumStyle, background: sleepMode ? '#0a0908' : visualizerTheme.bgColor }}
         >
-            {/* Dreampeace background (visible when not in visualizer mode) */}
-            <div className={`transition-opacity duration-700 ${visualizerMode ? 'opacity-0' : 'opacity-100'}`}>
-                <VisualizerBackground />
-            </div>
+            {/* ============================================================
+                ART → VISUALIZER seamless arrival
+                Two layers, same 3800ms duration, locked in phase:
+                  1. Art: blur + desaturate + scale + fade (dp-art-dream)
+                  2. Theme tint: rises to full bgColor then fades revealing viz
+                     (dp-tint-rise). Tint's solid color == viz's bgColor frame 1,
+                     so the final reveal has zero color delta.
+                ============================================================ */}
+            {album.artwork && (
+                <div className="absolute inset-0 z-[50] pointer-events-none overflow-hidden">
+                    {/* Layer 1: the art, dreaming away */}
+                    <div
+                        className="absolute inset-0 dp-art-dream-anim"
+                        style={{
+                            animation: 'dp-art-dream 3800ms cubic-bezier(0.4, 0, 0.6, 1) forwards',
+                        }}
+                    >
+                        <Image
+                            src={album.artwork}
+                            alt=""
+                            fill
+                            sizes="100vw"
+                            priority
+                            className="object-cover"
+                            style={{
+                                filter: sleepMode ? 'saturate(1.05) brightness(0.55)' : 'saturate(0.95)',
+                            }}
+                        />
+                    </div>
 
-            {/* ================================================================
-                VISUALIZER MODE (fullscreen canvas + floating UI)
-                ================================================================ */}
-            <div
-                className={`fixed inset-0 z-20 transition-all duration-700 ${
-                    visualizerMode
-                        ? 'opacity-100 pointer-events-auto'
-                        : 'opacity-0 pointer-events-none'
-                }`}
-            >
-                {/* Canvas */}
+                    {/* Layer 2: theme tint — grows to full bgColor, then fades
+                        revealing the visualizer. End color == viz bgColor. */}
+                    <div
+                        className="absolute inset-0 dp-tint-rise-anim"
+                        style={{
+                            background: sleepMode
+                                ? `radial-gradient(circle at center, ${visualizerTheme.ember}40 0%, rgba(10, 9, 8, 1) 75%)`
+                                : `radial-gradient(circle at center, ${visualizerTheme.ember}55 0%, ${visualizerTheme.bgColor} 75%)`,
+                            animation: 'dp-tint-rise 3800ms cubic-bezier(0.4, 0, 0.6, 1) forwards',
+                        }}
+                    />
+                </div>
+            )}
+
+            {/* Substrate fallback for albums without artwork */}
+            {!album.artwork && (
+                <div
+                    className="absolute inset-0 z-[50] pointer-events-none"
+                    style={{
+                        background: sleepMode ? '#0a0908' : visualizerTheme.bgColor,
+                        animation: 'dp-surface-field 1.8s cubic-bezier(0.22, 1, 0.36, 1) reverse forwards',
+                    }}
+                />
+            )}
+
+            {/* Visualizer — the dream itself */}
+            <div className="absolute inset-0 z-0">
                 <AudioVisualizer
                     theme={visualizerTheme}
-                    isActive={visualizerMode}
+                    isActive={true}
                     className="absolute inset-0"
                 />
+            </div>
 
-                {/* Back arrow (top-left) */}
+            {/* Sleep scrim — darkens the cream visualizer into night.
+                Screen-friendly for fall-asleep; no scene palette swap required. */}
+            {sleepMode && (
                 <div
-                    className={`absolute top-5 left-5 z-30 transition-all duration-500 ${
-                        isFullscreen && !showControls ? 'opacity-0 -translate-y-4' : 'opacity-100'
-                    }`}
-                >
-                    <Link
-                        href="/dreampeace"
-                        className="group flex items-center gap-2 px-3 py-2 rounded-full liquid-glass-light hover:bg-white/80 transition-all !rounded-full !py-2 !px-3"
+                    className="absolute inset-0 z-[2] pointer-events-none"
+                    style={{
+                        background:
+                            'radial-gradient(ellipse at center, rgba(5, 4, 10, 0.55) 0%, rgba(10, 9, 8, 0.78) 100%)',
+                    }}
+                />
+            )}
+
+            {/* Grain overlay */}
+            {tier.grainEnabled && <div className="absolute inset-0 dp-grain z-[5]" />}
+
+            {/* ========== Center stage ========== */}
+            <div
+                className="absolute inset-0 z-10 flex flex-col items-center justify-center pointer-events-none px-6"
+                style={{
+                    opacity: showOverlay || !hasStarted ? 1 : 0,
+                    transition: 'opacity 1400ms cubic-bezier(0.4, 0, 0.6, 1)',
+                }}
+            >
+                {/* Pre-play welcome */}
+                {!hasStarted && (
+                    <div
+                        className="opacity-0 max-w-2xl"
+                        style={{
+                            animation: 'dp-surface-content 1.6s cubic-bezier(0.22, 1, 0.36, 1) 1200ms forwards',
+                        }}
                     >
-                        <svg className="w-4 h-4 text-gray-400 group-hover:text-gray-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 19l-7-7 7-7" />
-                        </svg>
-                        <span className="text-xs text-gray-400 group-hover:text-gray-500 font-medium transition-colors tracking-wide">
-                            Dreampeace
-                        </span>
-                    </Link>
-                </div>
+                        {/* A moment by — small, kerned, slow-emerging overline.
+                            Gives the title something to rise up from. */}
+                        <div className="flex justify-center mb-5 opacity-0"
+                            style={{
+                                animation: 'dp-surface-content 1.8s cubic-bezier(0.22, 1, 0.36, 1) 600ms forwards',
+                            }}
+                        >
+                            <span
+                                className="text-[9px] md:text-[10px] font-light tracking-[0.55em] uppercase"
+                                style={{ color: 'var(--dp-ink-ember)' }}
+                            >
+                                A Dreampeace Moment
+                            </span>
+                        </div>
 
-                {/* Floating album art + track info (bottom-left) */}
-                <div
-                    className={`absolute bottom-6 left-6 z-30 flex items-center gap-4 transition-all duration-500 ${
-                        isFullscreen && !showControls ? 'opacity-0 translate-y-4' : 'opacity-100'
-                    }`}
-                >
-                    {album.artwork && (
-                        <div className="w-20 h-20 rounded-xl overflow-hidden shadow-lg ring-1 ring-black/5 flex-shrink-0">
-                            <Image
-                                src={album.artwork}
-                                alt={album.name}
-                                width={80}
-                                height={80}
-                                className="w-full h-full object-cover"
+                        {/* Album title — kerned letter-by-letter, large, breathed.
+                            The hero of the welcome. Size + emerge timing tuned so
+                            it feels like the title is being dreamed, not rendered. */}
+                        <div className="flex justify-center mb-4">
+                            <DreamText
+                                text={album.name}
+                                as="h1"
+                                uppercase
+                                tracking="0.22em"
+                                color={sleepMode ? 'rgba(245, 240, 232, 0.92)' : 'rgba(42, 38, 34, 0.92)'}
+                                vwScale={0.065}
+                                minPx={38}
+                                maxPx={84}
+                                breathe
+                                emergeMs={2400}
+                                staggerMs={95}
+                                dissolveToFlow
                             />
                         </div>
-                    )}
-                    <div className="min-w-0">
-                        <p className="text-gray-500 text-sm font-medium truncate max-w-[200px]">
-                            {currentTrack?.title || album.name}
-                        </p>
-                        <p className="text-gray-300 text-xs truncate">
-                            {album.name}
-                        </p>
-                        {duration > 0 && (
-                            <p className="text-gray-300 text-[10px] mt-1">
-                                {formatDuration(currentTime)} / {formatDuration(Math.floor(duration))}
+
+                        {/* Artist — kerned DreamText under the title, quieter
+                            but equally dreamed. Emerges after the title has settled. */}
+                        <div className="flex justify-center mb-8"
+                            style={{
+                                animation: 'dp-surface-content 1.8s cubic-bezier(0.22, 1, 0.36, 1) 2200ms forwards',
+                                opacity: 0,
+                            }}
+                        >
+                            <DreamText
+                                text="Devin Townsend"
+                                as="span"
+                                tracking="0.32em"
+                                color={sleepMode ? 'rgba(245, 240, 232, 0.7)' : 'rgba(74, 66, 58, 0.72)'}
+                                vwScale={0.014}
+                                minPx={11}
+                                maxPx={15}
+                                breathe
+                                emergeMs={1800}
+                                staggerMs={55}
+                                dissolveToFlow
+                            />
+                        </div>
+
+                        {album.description && (
+                            <p
+                                className="text-center text-xs md:text-sm font-light leading-relaxed tracking-[0.05em] max-w-xl mx-auto opacity-0 mb-12 px-4"
+                                style={{
+                                    color: 'var(--dp-ink-dim)',
+                                    animation:
+                                        'dp-surface-content 2.2s cubic-bezier(0.22, 1, 0.36, 1) 3400ms forwards',
+                                }}
+                            >
+                                {album.description}
                             </p>
                         )}
+                        <p
+                            className="text-center text-[10px] md:text-xs font-light tracking-[0.5em] uppercase opacity-0"
+                            style={{
+                                color: 'var(--dp-ink-ember)',
+                                animation:
+                                    'dp-surface-content 1.6s cubic-bezier(0.22, 1, 0.36, 1) 4600ms forwards, dp-glyph-idle 5s cubic-bezier(0.4, 0, 0.6, 1) 6400ms infinite',
+                            }}
+                        >
+                            Touch to enter
+                        </p>
                     </div>
-                </div>
+                )}
 
-                {/* Transport controls (bottom center) */}
+                {/* Playing — centered breathing title. Opacity driven by visualizer
+                    signal so music takes over gradually. Floor 0.5 per backend Claude's
+                    "don't lose navigation" rule. */}
+                {hasStarted && activeTrackTitle && (
+                    <div
+                        className="text-center"
+                        style={{
+                            opacity: Math.max(signal, 0.5),
+                            transition: 'opacity 400ms cubic-bezier(0.4, 0, 0.6, 1)',
+                        }}
+                    >
+                        <p
+                            className="text-[10px] md:text-xs font-light tracking-[0.4em] uppercase mb-3"
+                            style={{ color: 'var(--dp-ink-ember)' }}
+                        >
+                            Now Playing
+                        </p>
+                        <h2
+                            key={activeTrackTitle}
+                            className="text-xl md:text-3xl font-thin tracking-[0.15em]"
+                            style={{
+                                fontFamily: 'Georgia, serif',
+                                color: 'var(--dp-ink)',
+                            }}
+                        >
+                            <StarText mode="breathe" staggerMs={35} dissolveToFlow>
+                                {activeTrackTitle}
+                            </StarText>
+                        </h2>
+                    </div>
+                )}
+            </div>
+
+            {/* ========== Transport controls — bottom center ========== */}
+            {hasStarted && (
                 <div
-                    className={`absolute bottom-6 left-1/2 -translate-x-1/2 z-30 transition-all duration-500 ${
-                        isFullscreen && !showControls ? 'opacity-0 translate-y-4' : 'opacity-100'
-                    }`}
+                    className="absolute bottom-8 left-1/2 -translate-x-1/2 z-30"
+                    style={{
+                        opacity: showOverlay ? 1 : 0,
+                        transform: `translate(-50%, ${showOverlay ? '0' : '16px'})`,
+                        transition: 'opacity 700ms, transform 700ms',
+                        pointerEvents: showOverlay ? 'auto' : 'none',
+                    }}
+                    onClick={(e) => e.stopPropagation()}
                 >
-                    <div className="liquid-glass-light flex items-center gap-3 px-5 py-3">
+                    <div
+                        className="flex items-center gap-4 px-5 py-3 rounded-full backdrop-blur-lg border"
+                        style={{
+                            background: 'rgba(245, 240, 232, 0.7)',
+                            borderColor: 'rgba(58, 53, 48, 0.12)',
+                        }}
+                    >
                         <button
                             onClick={previous}
-                            className="w-9 h-9 rounded-full flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-black/5 transition-all"
                             aria-label="Previous"
+                            className="w-8 h-8 flex items-center justify-center rounded-full opacity-60 hover:opacity-100 transition-opacity"
+                            style={{ color: 'var(--dp-ink)' }}
                         >
                             <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
                                 <path d="M6 6h2v12H6zm3.5 6l8.5 6V6z" />
@@ -223,21 +441,37 @@ export default function DreampeaceAlbumClient({ album, visualizerTheme }: Dreamp
                         </button>
 
                         <button
-                            onClick={() => isPlaying ? pause() : resume()}
-                            className="w-12 h-12 rounded-full bg-white/60 border border-white/80 shadow-sm flex items-center justify-center hover:bg-white/80 transition-all"
+                            onClick={() => (isPlaying ? pause() : resume())}
                             aria-label={isPlaying ? 'Pause' : 'Play'}
+                            className="w-11 h-11 flex items-center justify-center rounded-full transition-all"
+                            style={{
+                                background: `${visualizerTheme.ember}25`,
+                                color: 'var(--dp-ink)',
+                                border: `1px solid ${visualizerTheme.ember}60`,
+                            }}
                         >
                             {isLoading ? (
-                                <svg className="w-5 h-5 text-gray-400 animate-spin" fill="none" viewBox="0 0 24 24">
-                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                                <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                                    <circle
+                                        className="opacity-25"
+                                        cx="12"
+                                        cy="12"
+                                        r="10"
+                                        stroke="currentColor"
+                                        strokeWidth="3"
+                                    />
+                                    <path
+                                        className="opacity-75"
+                                        fill="currentColor"
+                                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+                                    />
                                 </svg>
                             ) : isPlaying ? (
-                                <svg className="w-5 h-5 text-gray-500" fill="currentColor" viewBox="0 0 24 24">
+                                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
                                     <path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z" />
                                 </svg>
                             ) : (
-                                <svg className="w-5 h-5 text-gray-500 ml-0.5" fill="currentColor" viewBox="0 0 24 24">
+                                <svg className="w-4 h-4 ml-0.5" fill="currentColor" viewBox="0 0 24 24">
                                     <path d="M8 5v14l11-7z" />
                                 </svg>
                             )}
@@ -245,246 +479,262 @@ export default function DreampeaceAlbumClient({ album, visualizerTheme }: Dreamp
 
                         <button
                             onClick={next}
-                            className="w-9 h-9 rounded-full flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-black/5 transition-all"
                             aria-label="Next"
+                            className="w-8 h-8 flex items-center justify-center rounded-full opacity-60 hover:opacity-100 transition-opacity"
+                            style={{ color: 'var(--dp-ink)' }}
                         >
                             <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
                                 <path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z" />
                             </svg>
                         </button>
-                    </div>
-                </div>
 
-                {/* Top-right: fullscreen + sidebar toggle tab */}
-                <div
-                    className={`absolute top-5 right-5 z-30 flex items-center gap-2 transition-all duration-500 ${
-                        isFullscreen && !showControls ? 'opacity-0 -translate-y-4' : 'opacity-100'
-                    }`}
-                >
-                    <button
-                        onClick={toggleFullscreen}
-                        className="w-9 h-9 liquid-glass-light !rounded-lg flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-white/80 transition-all"
-                        aria-label={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}
-                        title={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}
-                    >
-                        {isFullscreen ? (
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 9L4 4m0 0v4m0-4h4m7 1l5-5m0 0v4m0-4h-4M9 15l-5 5m0 0v-4m0 4h4m7-1l5 5m0 0v-4m0 4h-4" />
-                            </svg>
-                        ) : (
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5v-4m0 4h-4m4 0l-5-5" />
-                            </svg>
-                        )}
-                    </button>
-                </div>
+                        <span className="w-px h-4 mx-1" style={{ background: 'rgba(58, 53, 48, 0.15)' }} />
 
-                {/* Sidebar tracklist (slides in from right) */}
-                <div
-                    className={`absolute top-0 right-0 bottom-0 z-30 w-72 bg-white/70 backdrop-blur-2xl border-l border-black/5 transition-transform duration-500 overflow-y-auto shadow-[-4px_0_24px_rgba(0,0,0,0.05)] ${
-                        showSidebar && visualizerMode ? 'translate-x-0' : 'translate-x-full'
-                    }`}
-                >
-                    {/* Close button */}
-                    <div className="sticky top-0 bg-white/80 backdrop-blur-sm z-10 flex items-center justify-between px-4 pt-4 pb-2">
-                        <p className="text-gray-400 text-[10px] uppercase tracking-[0.2em] font-medium">
-                            Tracklist
-                        </p>
                         <button
-                            onClick={() => setShowSidebar(false)}
-                            className="w-7 h-7 rounded-md flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-black/5 transition-all"
-                            aria-label="Close tracklist"
+                            onClick={() => setShowTracklist((v) => !v)}
+                            aria-label="Tracks"
+                            className="text-[10px] font-light tracking-[0.25em] uppercase opacity-60 hover:opacity-100 transition-opacity"
+                            style={{ color: 'var(--dp-ink)' }}
                         >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M6 18L18 6M6 6l12 12" />
-                            </svg>
+                            {showTracklist ? 'Hide' : 'Tracks'}
+                        </button>
+
+                        <button
+                            onClick={toggleFullscreen}
+                            aria-label={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}
+                            className="w-7 h-7 flex items-center justify-center rounded-full opacity-50 hover:opacity-100 transition-opacity"
+                            style={{ color: 'var(--dp-ink)' }}
+                        >
+                            {isFullscreen ? (
+                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth={1.5}
+                                        d="M9 9L4 4m0 0v4m0-4h4m7 1l5-5m0 0v4m0-4h-4M9 15l-5 5m0 0v-4m0 4h4m7-1l5 5m0 0v-4m0 4h-4"
+                                    />
+                                </svg>
+                            ) : (
+                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth={1.5}
+                                        d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5v-4m0 4h-4m4 0l-5-5"
+                                    />
+                                </svg>
+                            )}
                         </button>
                     </div>
-                    <div className="pb-24 px-3">
-                        <div className="space-y-px">
-                            {album.tracks.map((track, index) => {
-                                const isActive = currentTrack?.id === track.id;
-                                return (
-                                    <button
-                                        key={track.id}
-                                        onClick={() => handlePlay(track)}
-                                        className={`group w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-all duration-200 ${
-                                            isActive
-                                                ? 'bg-[var(--accent)]/10'
-                                                : 'hover:bg-black/5'
-                                        }`}
-                                    >
-                                        <div className="w-5 text-center flex-shrink-0">
-                                            {isActive && isPlaying ? (
-                                                <div className="flex items-center justify-center gap-0.5">
-                                                    <span className="w-0.5 h-2.5 bg-[var(--accent)] rounded-full animate-pulse" />
-                                                    <span className="w-0.5 h-3.5 bg-[var(--accent)] rounded-full animate-pulse animation-delay-200" />
-                                                    <span className="w-0.5 h-2 bg-[var(--accent)] rounded-full animate-pulse animation-delay-500" />
-                                                </div>
-                                            ) : (
-                                                <span className="text-xs text-gray-300 group-hover:text-gray-500">
-                                                    {index + 1}
-                                                </span>
-                                            )}
-                                        </div>
-                                        <span className={`flex-1 text-xs font-medium truncate transition-colors ${
-                                            isActive ? 'text-[var(--accent)]' : 'text-gray-600 group-hover:text-gray-800'
-                                        }`}>
-                                            {track.title}
-                                        </span>
-                                        <span className="text-[10px] text-gray-300 flex-shrink-0">
-                                            {formatDuration(track.duration)}
-                                        </span>
-                                    </button>
-                                );
-                            })}
-                        </div>
-                    </div>
+
+                    {duration > 0 && (
+                        <p
+                            className="mt-3 text-center text-[10px] tracking-[0.3em] font-light"
+                            style={{ color: 'var(--dp-ink-ember)' }}
+                        >
+                            {formatDuration(currentTime)} · {formatDuration(Math.floor(duration))}
+                        </p>
+                    )}
+                </div>
+            )}
+
+            {/* Thin progress line — top */}
+            {hasStarted && duration > 0 && (
+                <div
+                    className="absolute top-0 left-0 right-0 z-20 h-[2px]"
+                    style={{
+                        background: 'rgba(58, 53, 48, 0.08)',
+                        opacity: showOverlay ? 1 : 0.25,
+                        transition: 'opacity 700ms',
+                    }}
+                >
+                    <div
+                        className="h-full"
+                        style={{
+                            width: `${progressPct}%`,
+                            background: visualizerTheme.ember,
+                            boxShadow: `0 0 8px ${visualizerTheme.ember}80`,
+                            transition: 'width 200ms linear',
+                        }}
+                    />
+                </div>
+            )}
+
+            {/* Track list drawer */}
+            <div
+                className="absolute top-0 right-0 bottom-0 z-40 w-80 max-w-[85vw] overflow-y-auto"
+                onClick={(e) => e.stopPropagation()}
+                style={{
+                    transform: showTracklist ? 'translateX(0)' : 'translateX(100%)',
+                    transition: 'transform 700ms cubic-bezier(0.22, 1, 0.36, 1)',
+                    background: 'rgba(245, 240, 232, 0.88)',
+                    backdropFilter: 'blur(16px)',
+                    WebkitBackdropFilter: 'blur(16px)',
+                    borderLeft: '1px solid rgba(58, 53, 48, 0.08)',
+                }}
+            >
+                <div className="px-6 pt-8 pb-4">
+                    <p
+                        className="text-[10px] font-light tracking-[0.4em] uppercase mb-1"
+                        style={{ color: 'var(--dp-ink-ember)' }}
+                    >
+                        {album.name}
+                    </p>
+                    <p
+                        className="text-[9px] font-light tracking-[0.3em] uppercase"
+                        style={{ color: 'var(--dp-ink-whisper)' }}
+                    >
+                        {album.trackCount} tracks
+                    </p>
                 </div>
 
-                {/* Sidebar toggle tab (visible when sidebar is closed) */}
-                {!showSidebar && visualizerMode && (
-                    <button
-                        onClick={() => setShowSidebar(true)}
-                        className={`absolute right-0 top-1/2 -translate-y-1/2 z-30 bg-black/5 backdrop-blur-sm border border-r-0 border-black/10 rounded-l-lg px-1.5 py-4 text-gray-400 hover:text-gray-600 hover:bg-black/10 transition-all ${
-                            isFullscreen && !showControls ? 'opacity-0' : 'opacity-100'
-                        }`}
-                        aria-label="Open tracklist"
-                        title="Open tracklist"
-                    >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 19l-7-7 7-7" />
-                        </svg>
-                    </button>
+                <div className="pb-20 px-3">
+                    {album.tracks.map((track, index) => {
+                        const isActive = currentTrack?.id === track.id;
+                        return (
+                            <button
+                                key={track.id}
+                                onClick={() => handlePlayTrack(track)}
+                                className="group w-full flex items-center gap-3 px-3 py-3 text-left transition-all duration-300"
+                                style={{
+                                    background: isActive ? `${visualizerTheme.ember}12` : 'transparent',
+                                    borderLeft: isActive
+                                        ? `2px solid ${visualizerTheme.ember}`
+                                        : '2px solid transparent',
+                                }}
+                            >
+                                <span
+                                    className="w-5 text-center text-[10px] font-light"
+                                    style={{
+                                        color: isActive
+                                            ? visualizerTheme.ember
+                                            : 'var(--dp-ink-ember)',
+                                    }}
+                                >
+                                    {index + 1}
+                                </span>
+                                <span
+                                    className="flex-1 text-xs font-light tracking-[0.1em] truncate"
+                                    style={{
+                                        color: isActive ? 'var(--dp-ink)' : 'var(--dp-ink-dim)',
+                                    }}
+                                >
+                                    {track.title}
+                                </span>
+                                <span
+                                    className="text-[10px] font-light"
+                                    style={{ color: 'var(--dp-ink-whisper)' }}
+                                >
+                                    {formatDuration(track.duration)}
+                                </span>
+                            </button>
+                        );
+                    })}
+                </div>
+
+                {/* Credits — grouped by name, woven in rather than columnar.
+                    Each album has its own set (different mastering engineers,
+                    guest composers, etc.) so this panel isn't boilerplate. */}
+                {credits.length > 0 && (
+                    <div className="px-6 pt-6 pb-16 border-t" style={{ borderColor: 'rgba(58, 53, 48, 0.08)' }}>
+                        <p
+                            className="text-[9px] font-light tracking-[0.4em] uppercase mb-4"
+                            style={{ color: 'var(--dp-ink-ember)' }}
+                        >
+                            Credits
+                        </p>
+                        <div className="space-y-2.5">
+                            {groupCredits(credits).map((group, i) => (
+                                <div key={i} className="text-[10px] font-light leading-relaxed">
+                                    <div
+                                        className="tracking-[0.2em] uppercase"
+                                        style={{ color: 'var(--dp-ink-whisper)' }}
+                                    >
+                                        {group.roles.join(' · ')}
+                                    </div>
+                                    <div
+                                        className="tracking-[0.08em]"
+                                        style={{ color: 'var(--dp-ink-dim)' }}
+                                    >
+                                        {group.name}
+                                        {group.note && (
+                                            <span
+                                                className="ml-1"
+                                                style={{ color: 'var(--dp-ink-whisper)' }}
+                                            >
+                                                — {group.note}
+                                            </span>
+                                        )}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
                 )}
             </div>
 
-            {/* ================================================================
-                NORMAL MODE (standard album page)
-                ================================================================ */}
-            <div
-                className={`relative z-10 flex flex-col min-h-screen transition-all duration-700 ${
-                    visualizerMode ? 'opacity-0 pointer-events-none scale-95' : 'opacity-100 scale-100'
-                }`}
-            >
-                <Navbar />
+            {/* Sleep-mode loop hint — faint, bottom-right corner, breathing. */}
+            {sleepMode && hasStarted && (
+                <div
+                    className="absolute bottom-6 right-6 z-30 flex items-center gap-2 animate-dp-glyph-idle pointer-events-none"
+                    style={{
+                        color: 'rgba(245, 240, 232, 0.35)',
+                        opacity: showOverlay ? 1 : 0.25,
+                        transition: 'opacity 900ms',
+                    }}
+                >
+                    {/* Crescent-ish moon dot */}
+                    <span
+                        className="block w-1.5 h-1.5 rounded-full"
+                        style={{
+                            background: 'rgba(245, 240, 232, 0.5)',
+                            boxShadow: '0 0 8px rgba(245, 240, 232, 0.35)',
+                        }}
+                    />
+                    <span className="text-[9px] font-light tracking-[0.35em] uppercase">
+                        {sessionExpired ? 'Rest complete' : 'Looping for rest · 8h'}
+                    </span>
+                </div>
+            )}
 
-                <main className="flex-grow pt-24 pb-16 px-4">
-                    <div className="max-w-4xl mx-auto">
-                        {/* Back link */}
-                        <Link
-                            href="/dreampeace"
-                            className="inline-flex items-center gap-1.5 text-sm text-[var(--foreground-muted)] hover:text-[var(--accent)] transition-colors mb-8"
-                        >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                            </svg>
-                            Back to Dreampeace
-                        </Link>
-
-                        {/* Album header */}
-                        <div className="flex flex-col sm:flex-row gap-8 mb-12 animate-fade-in">
-                            <div className="relative w-full sm:w-64 md:w-72 flex-shrink-0 aspect-square rounded-2xl overflow-hidden shadow-soft">
-                                {album.artwork ? (
-                                    <Image
-                                        src={album.artwork}
-                                        alt={album.name}
-                                        fill
-                                        className="object-cover"
-                                        priority
-                                        sizes="(max-width: 640px) 100vw, 288px"
-                                    />
-                                ) : (
-                                    <div className="w-full h-full bg-gradient-to-br from-purple-100 to-blue-50 flex items-center justify-center">
-                                        <svg className="w-16 h-16 text-purple-300/40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
-                                        </svg>
-                                    </div>
-                                )}
-                            </div>
-
-                            <div className="flex flex-col justify-end">
-                                <p className="text-xs uppercase tracking-[0.2em] text-[var(--accent)] font-medium mb-2">
-                                    Dreampeace Album
-                                </p>
-                                <h1 className="text-3xl md:text-4xl font-bold text-[var(--foreground)] leading-tight mb-4">
-                                    {album.name}
-                                </h1>
-                                {album.description && (
-                                    <p className="text-[var(--foreground-muted)] text-sm mb-4 max-w-md leading-relaxed">
-                                        {album.description}
-                                    </p>
-                                )}
-                                <div className="flex items-center gap-3 text-sm text-[var(--foreground-muted)]">
-                                    <span>{album.trackCount} tracks</span>
-                                    <span className="w-1 h-1 rounded-full bg-[var(--accent)]/50" />
-                                    <span>{formatDuration(totalDuration)}</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Divider */}
-                        <div className="h-px bg-gradient-to-r from-transparent via-[var(--accent)]/20 to-transparent mb-8" />
-
-                        {/* Play all + tracklist */}
-                        <div>
-                            <button
-                                onClick={handlePlayAll}
-                                className="group inline-flex items-center gap-3 mb-8 px-6 py-3 rounded-full bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-white font-semibold text-sm transition-all duration-300 hover:shadow-[0_0_30px_rgba(128,90,213,0.3)] hover:-translate-y-0.5"
-                            >
-                                <svg className="w-5 h-5 transition-transform group-hover:scale-110" fill="currentColor" viewBox="0 0 24 24">
-                                    <path d="M8 5v14l11-7z" />
-                                </svg>
-                                Play Album
-                            </button>
-
-                            <div className="space-y-px">
-                                {album.tracks.map((track, index) => {
-                                    const isActive = currentTrack?.id === track.id;
-                                    return (
-                                        <button
-                                            key={track.id}
-                                            onClick={() => handlePlay(track)}
-                                            className={`group w-full flex items-center gap-4 px-4 py-3 rounded-lg text-left transition-all duration-200 ${
-                                                isActive
-                                                    ? 'bg-[var(--accent)]/10 border border-[var(--accent)]/20'
-                                                    : 'hover:bg-[var(--accent)]/5 border border-transparent'
-                                            }`}
-                                        >
-                                            <div className="w-8 text-center flex-shrink-0">
-                                                {isActive && isPlaying ? (
-                                                    <div className="flex items-center justify-center gap-0.5">
-                                                        <span className="w-0.5 h-3 bg-[var(--accent)] rounded-full animate-pulse" />
-                                                        <span className="w-0.5 h-4 bg-[var(--accent)] rounded-full animate-pulse animation-delay-200" />
-                                                        <span className="w-0.5 h-2.5 bg-[var(--accent)] rounded-full animate-pulse animation-delay-500" />
-                                                    </div>
-                                                ) : (
-                                                    <>
-                                                        <span className="text-sm text-[var(--foreground-muted)] group-hover:hidden">
-                                                            {index + 1}
-                                                        </span>
-                                                        <svg className="w-4 h-4 text-[var(--foreground)] hidden group-hover:block mx-auto" fill="currentColor" viewBox="0 0 24 24">
-                                                            <path d="M8 5v14l11-7z" />
-                                                        </svg>
-                                                    </>
-                                                )}
-                                            </div>
-                                            <span className={`flex-1 text-sm font-medium truncate transition-colors ${
-                                                isActive ? 'text-[var(--accent)]' : 'text-[var(--foreground)] group-hover:text-[var(--accent)]'
-                                            }`}>
-                                                {track.title}
-                                            </span>
-                                            <span className="text-xs text-[var(--foreground-muted)] w-12 text-right flex-shrink-0">
-                                                {formatDuration(track.duration)}
-                                            </span>
-                                        </button>
-                                    );
-                                })}
-                            </div>
-                        </div>
-                    </div>
-                </main>
+            {/* Home glyph — stopPropagation so clicks on it don't toggle the page overlay */}
+            <div onClick={(e) => e.stopPropagation()}>
+                <HomeGlyph href="/dreampeace" label="Return" />
             </div>
+
+            {/* Sleep toggle — top right, matches home-glyph chip. Persists via
+                URL so refreshing / bookmarking keeps the mode. */}
+            <button
+                type="button"
+                onClick={toggleSleep}
+                aria-label={sleepMode ? 'Switch to day' : 'Switch to sleep'}
+                className="dp-home-chip fixed top-5 right-5 z-[70] flex items-center gap-2.5 focus:outline-none"
+                style={{
+                    opacity: showOverlay || !hasStarted ? 1 : 0.35,
+                    transition: 'opacity 900ms cubic-bezier(0.4, 0, 0.6, 1)',
+                    cursor: 'pointer',
+                }}
+            >
+                <span aria-hidden className="block w-4 h-4" style={{ color: 'currentColor' }}>
+                    {sleepMode ? (
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.3} className="w-full h-full">
+                            <path d="M20 14.5a8 8 0 01-10.5-10.5A8 8 0 1020 14.5z" />
+                        </svg>
+                    ) : (
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.3} className="w-full h-full">
+                            <circle cx="12" cy="12" r="3.5" />
+                            <path strokeLinecap="round" d="M12 4v2M12 18v2M4 12h2M18 12h2M6.2 6.2l1.4 1.4M16.4 16.4l1.4 1.4M6.2 17.8l1.4-1.4M16.4 7.6l1.4-1.4" />
+                        </svg>
+                    )}
+                </span>
+                <span
+                    aria-hidden
+                    className="text-[10px] font-light uppercase whitespace-nowrap"
+                    style={{ letterSpacing: '0.32em', opacity: 0.78 }}
+                >
+                    {sleepMode ? 'Day' : 'Sleep'}
+                </span>
+            </button>
         </div>
     );
 }
