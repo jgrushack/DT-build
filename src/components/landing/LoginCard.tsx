@@ -1,14 +1,11 @@
 'use client';
 
 import { useState } from 'react';
-import ReactiveText from '@/components/text/ReactiveText';
+import DreamText from '@/components/dreampeace/DreamText';
 
 type LoginCardProps = {
   error?: string | null;
 };
-
-// Wordmark font — Avernus URW Bold at display size.
-const WORDMARK_FONT = '700 60px "Avernus URW", system-ui, -apple-system, sans-serif';
 
 export default function LoginCard({ error }: LoginCardProps) {
   const [handingOff, setHandingOff] = useState(false);
@@ -26,25 +23,40 @@ export default function LoginCard({ error }: LoginCardProps) {
   return (
     <>
       <div className="w-full max-w-sm flex flex-col items-center">
-        <div className="text-center mb-10">
+        <div className="text-center mb-10 flex flex-col items-center">
           <p className="text-[#a88a45] text-xs font-medium uppercase tracking-[0.3em] mb-4">
             Exclusive Access
           </p>
-          <ReactiveText
-            as="h1"
-            text="Devin"
-            font={WORDMARK_FONT}
-            className="leading-none"
-            style={{ color: '#25221e', letterSpacing: '-0.01em', display: 'block', fontWeight: 700 }}
-          />
-          <ReactiveText
-            as="h1"
-            text="Townsend"
-            font={WORDMARK_FONT}
-            className="leading-none"
-            style={{ letterSpacing: '-0.01em', display: 'block', fontWeight: 700 }}
-            gradientBg="linear-gradient(90deg, #a88a45, #c9a45c)"
-          />
+          <div className="flex justify-center">
+            <DreamText
+              text="Devin"
+              as="h1"
+              fontWeight={700}
+              tracking="-0.01em"
+              color="#25221e"
+              vwScale={0.09}
+              minPx={48}
+              maxPx={72}
+              breathe
+              emergeMs={1200}
+              staggerMs={55}
+            />
+          </div>
+          <div className="flex justify-center mt-1">
+            <DreamText
+              text="Townsend"
+              as="h1"
+              fontWeight={700}
+              tracking="-0.01em"
+              color="#b8924b"
+              vwScale={0.09}
+              minPx={48}
+              maxPx={72}
+              breathe
+              emergeMs={1200}
+              staggerMs={55}
+            />
+          </div>
           <div className="w-12 h-px bg-gradient-to-r from-transparent via-[#a88a45] to-transparent mx-auto mt-6 mb-4" />
           <p className="text-[#6b7a5e] text-sm">
             Patreon subscribers only

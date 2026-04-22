@@ -1,73 +1,26 @@
 'use client';
 
-import { useEffect, useState } from 'react';
 import LoginCard from './LoginCard';
-
-type Phase = 'dreaming' | 'login';
-
-const DREAM_DURATION_MS = 5200;
-const SKIP_AVAILABLE_AT_MS = 2000;
 
 type FeverDreamProps = {
   loginError?: string | null;
 };
 
 export default function FeverDream({ loginError = null }: FeverDreamProps) {
-  const [phase, setPhase] = useState<Phase>('dreaming');
-  const [skipVisible, setSkipVisible] = useState(false);
-
-  useEffect(() => {
-    const skipTimer = setTimeout(() => setSkipVisible(true), SKIP_AVAILABLE_AT_MS);
-    const advanceTimer = setTimeout(() => setPhase('login'), DREAM_DURATION_MS);
-    return () => {
-      clearTimeout(skipTimer);
-      clearTimeout(advanceTimer);
-    };
-  }, []);
-
-  const handleSkip = () => setPhase('login');
-
   return (
     <div
       className="fixed inset-0 overflow-hidden flex items-center justify-center"
       style={{ background: '#f5f0e8' }}
     >
-      {/*
-        VISUAL LAYER — placeholder.
-        Visualizer Claude will replace this with the fever-dream visual component.
-        Cream substrate with low-opacity drifting amber/sage washes — ethereal, misty.
-      */}
-      <div
-        aria-hidden
-        className={`absolute inset-0 transition-opacity duration-[1200ms] ease-[cubic-bezier(0.22,1,0.36,1)] ${
-          phase === 'login' ? 'opacity-60' : 'opacity-100'
-        }`}
-      >
+      {/* Dream atmosphere — drifts behind the login card from the first frame. */}
+      <div aria-hidden className="absolute inset-0 opacity-80">
         <div className="absolute inset-0 animate-dream-drift-a" />
         <div className="absolute inset-0 animate-dream-drift-b" />
         <div className="absolute inset-0 animate-dream-pulse" />
       </div>
 
-      {/* Skip affordance — appears after SKIP_AVAILABLE_AT_MS */}
-      <button
-        type="button"
-        onClick={handleSkip}
-        className={`absolute bottom-10 left-1/2 -translate-x-1/2 z-10 text-[10px] uppercase tracking-[0.4em] text-[#6b7a5e] hover:text-[#25221e] transition-opacity duration-1000 ${
-          skipVisible && phase === 'dreaming' ? 'opacity-100' : 'opacity-0 pointer-events-none'
-        }`}
-      >
-        Enter
-      </button>
-
-      {/* Login card — crossfades in during 'login' phase with 0.6s overlap */}
-      <div
-        className={`relative z-20 transition-opacity duration-[1200ms] ease-[cubic-bezier(0.22,1,0.36,1)] ${
-          phase === 'login' ? 'opacity-100' : 'opacity-0 pointer-events-none'
-        }`}
-        style={{
-          transitionDelay: phase === 'login' ? '600ms' : '0ms',
-        }}
-      >
+      {/* Login card — fades in immediately so the splash is never empty. */}
+      <div className="relative z-20 animate-dream-card-in">
         <LoginCard error={loginError} />
       </div>
 
@@ -105,6 +58,13 @@ export default function FeverDream({ loginError = null }: FeverDreamProps) {
         }
         .animate-dream-pulse {
           animation: dream-pulse 7s ease-in-out infinite;
+        }
+        @keyframes dream-card-in {
+          from { opacity: 0; transform: translateY(8px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-dream-card-in {
+          animation: dream-card-in 1400ms cubic-bezier(0.22, 1, 0.36, 1) 200ms both;
         }
       `}</style>
     </div>
