@@ -13,7 +13,7 @@ import { usePlayerStore } from '@/store/playerStore';
 interface Star {
     album: Playlist;
     theme: VisualizerTheme;
-    pos: { x: number; y: number; size: number };
+    pos: { x: number; y: number; size: number; labelPos: 'above' | 'below' };
 }
 
 interface Props {
@@ -152,7 +152,7 @@ export default function DreampeaceLandingClient({ stars }: Props) {
                 type="button"
                 onClick={() => setSleep((v) => !v)}
                 aria-label={sleep ? 'Switch to day' : 'Switch to sleep'}
-                className="fixed top-[18px] right-[60px] z-[95] w-9 h-9 flex items-center justify-center rounded-full focus:outline-none group opacity-0"
+                className="fixed top-[18px] right-[68px] z-[95] w-9 h-9 flex items-center justify-center rounded-full focus:outline-none group opacity-0"
                 style={{
                     animation: 'dp-surface-content 1.4s cubic-bezier(0.22, 1, 0.36, 1) 2200ms forwards',
                 }}
@@ -181,54 +181,25 @@ export default function DreampeaceLandingClient({ stars }: Props) {
                 </span>
             </button>
 
-            {/* ========== Home content — Moments is the default ========== */}
+            {/* About — sits in the top chrome row, left of the Sleep toggle.
+                The hero "Dreampeace" wordmark was removed because PortalChrome
+                already provides the wordmark top-left; rendering both was a
+                duplication. Mobile column-budget (right→left): avatar (~5–53),
+                Sleep (~68–138), About (~160–210). */}
+            <button
+                type="button"
+                onClick={() => setAboutOpen(true)}
+                className="fixed top-[20px] right-[160px] z-[95] text-[10px] font-light tracking-[0.3em] uppercase transition-opacity duration-500 hover:opacity-100 opacity-0"
+                style={{
+                    color: sleep ? SLEEP_DIM : INK_DIM,
+                    animation: 'dp-surface-content 1.4s cubic-bezier(0.22, 1, 0.36, 1) 2200ms forwards',
+                }}
+            >
+                About
+            </button>
+
+            {/* ========== Home content — constellation is the centerpiece ========== */}
             <div className="relative z-10 w-full h-full flex flex-col items-center justify-center px-6 py-20 overflow-y-auto">
-
-                {/* Hero wordmark row — Dreampeace · About */}
-                <div
-                    ref={registerScatter('wordmark-row')}
-                    className="flex items-baseline gap-5 mb-3 opacity-0"
-                    style={{
-                        animation: 'dp-surface-content 1.4s cubic-bezier(0.22, 1, 0.36, 1) 1500ms forwards',
-                    }}
-                >
-                    {/* Pretext-kerned wordmark, darker ink for legibility on cream */}
-                    <DreamText
-                        text="Dreampeace"
-                        as="h1"
-                        uppercase
-                        tracking="0.22em"
-                        color={sleep ? SLEEP_HERO : INK_HERO}
-                        opacity={Math.max(signal, 0.75)}
-                        vwScale={0.055}
-                        minPx={36}
-                        maxPx={68}
-                        breathe
-                        emergeMs={1600}
-                        staggerMs={80}
-                    />
-
-                    <button
-                        type="button"
-                        onClick={() => setAboutOpen(true)}
-                        className="text-[10px] md:text-[11px] font-light tracking-[0.3em] uppercase transition-opacity duration-500 hover:opacity-100"
-                        style={{
-                            color: sleep ? SLEEP_DIM : INK_DIM,
-                            opacity: 0.65,
-                            alignSelf: 'center',
-                            marginLeft: '8px',
-                            marginTop: '8px',
-                        }}
-                    >
-                        · About
-                    </button>
-                </div>
-
-                {/* "by Devin Townsend" intentionally omitted here — lives only on
-                    the pre-auth splash (/). Home shouldn't re-credit; it should feel
-                    inhabited. Spacer below preserves the breathing distance to the
-                    constellation that the credit line used to provide. */}
-                <div className="mb-14 md:mb-16" />
 
                 {/* Constellation */}
                 <ConstellationGrid
@@ -346,16 +317,27 @@ function ConstellationGrid({
     onEnter: (albumId: string, el: HTMLButtonElement | null) => void;
     registerScatter: (id: string) => (el: HTMLElement | null) => void;
 }) {
+    // Orb base size shrinks on phones so 7 orbs fit without label collisions.
+    // Container aspect is taller on mobile (3/4) and wider on desktop (4/3) —
+    // both shapes use the same x/y % so a single layout authors both viewports.
+    const [orbBase, setOrbBase] = useState(72);
+    useEffect(() => {
+        const update = () => setOrbBase(window.innerWidth < 640 ? 54 : 72);
+        update();
+        window.addEventListener('resize', update);
+        return () => window.removeEventListener('resize', update);
+    }, []);
+
     return (
         <div
-            className="relative w-full aspect-[4/3] max-w-[720px] opacity-0"
+            className="relative w-full aspect-[3/4] sm:aspect-[4/3] max-w-[720px] opacity-0"
             style={{
                 animation: 'dp-surface-content 2s cubic-bezier(0.22, 1, 0.36, 1) 3000ms forwards',
             }}
         >
             {stars.map((s, i) => {
                 const isEntering = entering === s.album.id;
-                const orbSize = 72 * s.pos.size;
+                const orbSize = orbBase * s.pos.size;
                 const artBaseOpacity = isSleep ? 0.28 : 0.38;
                 const artOpacity = artBaseOpacity * signal;
 
@@ -421,9 +403,11 @@ function ConstellationGrid({
 
                         <span
                             ref={registerScatter(`label-${s.album.id}`)}
-                            className="absolute left-1/2 -translate-x-1/2 whitespace-nowrap text-[11px] md:text-xs font-light tracking-[0.25em] uppercase transition-opacity duration-700 group-hover:opacity-100 group-focus:opacity-100"
+                            className="absolute left-1/2 -translate-x-1/2 whitespace-nowrap text-[10px] md:text-[11px] font-light tracking-[0.18em] uppercase transition-opacity duration-700 group-hover:opacity-100 group-focus:opacity-100"
                             style={{
-                                top: `calc(${orbSize}px + 18px)`,
+                                ...(s.pos.labelPos === 'above'
+                                    ? { bottom: `calc(${orbSize}px + 14px)` }
+                                    : { top: `calc(${orbSize}px + 14px)` }),
                                 color: isSleep ? SLEEP_BODY : INK_BODY,
                                 opacity: 0.7,
                                 willChange: 'transform, opacity, filter',

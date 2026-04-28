@@ -8,14 +8,17 @@ export const metadata = {
 
 // Loose constellation layout — 7 points, deterministic, in % of container.
 // Hand-tuned to feel like stars, not a grid. Duplicated on every render for SSR match.
-const CONSTELLATION: Array<{ x: number; y: number; size: number }> = [
-    { x: 22, y: 28, size: 1.00 }, // dp1 Tryptophan
-    { x: 55, y: 16, size: 0.85 }, // dp2 Sky Gods
-    { x: 82, y: 36, size: 0.95 }, // dp3 Dawn Shifter
-    { x: 72, y: 64, size: 1.05 }, // dp4 Space Oyster
-    { x: 42, y: 78, size: 0.80 }, // dp5 Snow Day
-    { x: 14, y: 62, size: 0.90 }, // dp6 Beautiful Day
-    { x: 50, y: 46, size: 1.00 }, // dp7 Pond Skimmer
+// `labelPos` flips a star's label above the orb when below would collide with a
+// neighbor label. Lower-half stars use 'below', upper-half + the center star use
+// 'above' so labels never land on top of another star's label.
+const CONSTELLATION: Array<{ x: number; y: number; size: number; labelPos: 'above' | 'below' }> = [
+    { x: 16, y: 24, size: 1.00, labelPos: 'below' }, // dp1 Tryptophan
+    { x: 50, y: 12, size: 0.85, labelPos: 'below' }, // dp2 Sky Gods
+    { x: 84, y: 26, size: 0.95, labelPos: 'below' }, // dp3 Dawn Shifter
+    { x: 82, y: 64, size: 1.05, labelPos: 'below' }, // dp4 Space Oyster
+    { x: 50, y: 84, size: 0.80, labelPos: 'above' }, // dp5 Snow Day  (above so it doesn't fall off the bottom)
+    { x: 16, y: 64, size: 0.90, labelPos: 'below' }, // dp6 Beautiful Day
+    { x: 50, y: 46, size: 1.00, labelPos: 'above' }, // dp7 Pond Skimmer (above so its label doesn't crowd dp4/dp5)
 ];
 
 export default function DreampeacePage() {
