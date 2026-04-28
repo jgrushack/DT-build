@@ -240,33 +240,10 @@ export default function DreampeaceLandingClient({ stars }: Props) {
                     registerScatter={registerScatter}
                 />
 
-                {/* Credits line — woven in at rest, tracks with signal */}
-                <div
-                    ref={registerScatter('credits-line')}
-                    className="mt-12 md:mt-16 opacity-0 text-center max-w-2xl px-4"
-                    style={{
-                        animation: 'dp-surface-content 1.4s cubic-bezier(0.22, 1, 0.36, 1) 3800ms forwards',
-                    }}
-                >
-                    <p
-                        className="text-[9px] md:text-[10px] font-light tracking-[0.35em] uppercase leading-relaxed"
-                        style={{
-                            color: sleep ? SLEEP_WHISPER : INK_WHISPER,
-                            opacity: Math.max(signal * 0.9, 0.5),
-                        }}
-                    >
-                        Written · Performed · Produced · Mixed by Devin Townsend
-                    </p>
-                    <p
-                        className="text-[9px] md:text-[10px] font-light tracking-[0.35em] uppercase leading-relaxed mt-2"
-                        style={{
-                            color: sleep ? SLEEP_WHISPER : INK_WHISPER,
-                            opacity: Math.max(signal * 0.9, 0.5),
-                        }}
-                    >
-                        Mastered by Ben Searles · © HevyDevy Records
-                    </p>
-                </div>
+                {/* Credits intentionally omitted on the home — they vary by
+                    album (Beautiful Day has a guest co-composer + a different
+                    mastering engineer), so the per-album credits drawer is the
+                    only place they belong. */}
             </div>
 
             {/* Now Playing — subtle chip at the bottom of the constellation.
